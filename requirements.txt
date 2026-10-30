@@ -1,4 +1,4 @@
-flask
-Flask-SocketIO
-confluent-kafka==1.3.0
-requests
+flask~=3.1.3
+Flask-SocketIO~=5.7.0
+confluent-kafka~=2.16.1
+requests~=2.34.2
