@@ -6,7 +6,6 @@
 Kafka-WebApp
    ├── static/
    │   └── img/
-   │       ├── abesit-logo.png
    |       ├── camera-logo.png
    |       ├── nvidia-logo.png
    │       └── giventures-logo.png

@@ -23,7 +23,6 @@ Additionally, you can walk through the following link to do your custom configur
 Kafka-WebApp
    ├── static/
    │   └── img/
-   │       ├── abesit-logo.png
    |       ├── camera-logo.png
    |       ├── nvidia-logo.png
    │       └── giventures-logo.png
@@ -39,7 +38,7 @@ To get the `Kafka-WebApp` onto the Raspberry Pi, you can clone the repository fr
 
 ```bash
 # Clone GitHub Repository
-git clone git@github.com:gi-hamza-eatai241/Kafka-WebApp.git
+git clone https://github.com/hamza-aziz-ai/Kafka-WebApp.git
 
 # Change directpry to Kafka-WebApp
 cd Kafka-WebApp
