@@ -290,3 +290,21 @@ To make these settings effect on the system, we will bw needing to restart the s
 ```bash
 sudo reboot -h now
 ```
+
+## Run with Docker
+
+Each release publishes `ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>` for amd64 and arm64 (Raspberry Pi).
+
+```bash
+docker run -d --restart unless-stopped -p 9090:9090 -e IP_ADDRESS=<server-ip> ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `IP_ADDRESS` | `192.168.12.1` | Server that runs Kafka and the display image server |
+| `KAFKA_TOPIC` | `maingate_entry` | Topic to display |
+| `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
+| `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports that must answer before consuming starts |
+| `SECRET_KEY` | random at each start | Flask session key |
+
+PR titles must be Conventional Commits: `feat:` gives a minor release, `fix:`/`perf:` a patch, and `type!:` a major.

@@ -1,3 +1,5 @@
+import os
+import secrets
 import socket
 import threading
 import time
@@ -16,11 +18,12 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     IMAGE_SERVER_ADDRESS, \
     STATUS_THRESHOLD, \
     DGX_IP_ADDRESS, \
+    HOST_CHECK_PORT, \
     NETWORK_FAIL_CHECK, \
     PROJECT_SERVICES_PORT
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 kafka_conf = {
@@ -75,7 +78,7 @@ def _consume_messages():
     services_ping_fail = 0
 
     while True:
-        is_dgx_reachable = ping_server(DGX_IP_ADDRESS, 22)
+        is_dgx_reachable = ping_server(DGX_IP_ADDRESS, HOST_CHECK_PORT)
         are_services_running = ping_project_services()
 
         if is_dgx_reachable:
