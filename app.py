@@ -1,3 +1,5 @@
+import os
+import secrets
 import socket
 import threading
 import time
@@ -21,7 +23,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     PROJECT_SERVICES_PORT
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 kafka_conf = {
