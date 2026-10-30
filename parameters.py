@@ -1,7 +1,12 @@
-# Project Services
-DGX_IP_ADDRESS = "192.168.12.1"
+import os
 
-PROJECT_SERVICES_PORT = [
+# Project Services
+DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "192.168.12.1")
+
+# Port that shows the host is reachable
+HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))
+
+DEFAULT_PROJECT_SERVICES_PORT = [
     6385, 19000, 19001,     # InsightFace
     19530,                  # Milvus Vector Database
     9092,                   # Kafka Broker
@@ -11,13 +16,15 @@ PROJECT_SERVICES_PORT = [
     20013,                  # Display-Image-Server
     6386, 6970, 6971        # Face Liveness Detection
 ]
+# Comma-separated override, for a host that does not run every service above
+PROJECT_SERVICES_PORT = [int(p) for p in os.getenv("PROJECT_SERVICES_PORT", "").split(",") if p] or DEFAULT_PROJECT_SERVICES_PORT
 
 # Kafka IP and Port
 CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
 
 # Kafka topic for messages
-CONFLUENT_KAFKA_TOPIC = "maingate_entry"
+CONFLUENT_KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "maingate_entry")
 CONFLUENT_KAFKA_PARTITION = 0
 
 # Number of names to be displayed at once
