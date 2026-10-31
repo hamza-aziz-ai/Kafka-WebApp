@@ -13,6 +13,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     CONFLUENT_KAFKA_PORT, \
     CONFLUENT_KAFKA_TOPIC, \
     CONFLUENT_KAFKA_PARTITION, \
+    CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
     STATUS_THRESHOLD, \
@@ -27,7 +28,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 kafka_conf = {
     'bootstrap.servers': f'{CONFLUENT_KAFKA_IP_ADDRESS}:{CONFLUENT_KAFKA_PORT}',
-    'group.id': 'face_recognition_feedback_message_consumer_group',
+    'group.id': CONFLUENT_KAFKA_GROUP,
     'auto.offset.reset': 'latest',
     'enable.auto.commit': True,
     'session.timeout.ms': 6000,
