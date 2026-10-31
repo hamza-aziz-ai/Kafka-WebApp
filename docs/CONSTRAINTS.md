@@ -38,4 +38,4 @@ This project has no customers yet. The owner is simulating real-world conditions
 
 ## Keep it general
 
-- Never add a real company, client or site name, logo or branding to this repo. Use `<client>` and `<location>_<point>` style placeholders, and generic examples.
+- Never add a real company, client or site name, logo or branding to this repo, including third-party vendor logos. Use `<client>` and `<location>_<point>` style placeholders, and generic examples.

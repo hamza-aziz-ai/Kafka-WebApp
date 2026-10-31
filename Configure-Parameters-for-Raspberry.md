@@ -5,9 +5,7 @@
 ```tree
 Kafka-WebApp
    ├── static/
-   │   └── img/
-   |       ├── camera-logo.png
-   |       └── nvidia-logo.png
+   │   └── fonts/
    ├── templates/
    │   └── index.html
    ├── app.py

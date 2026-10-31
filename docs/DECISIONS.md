@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-010: Use the Face-Dataset-Collector light theme, with no logos
+
+Date: 2026-10-31. Model: Claude Opus 5.5. Chosen by the owner from a design comparing the app's dark capture theme and light staff theme.
+Context: The old page was a blue gradient with stacked rows and third-party logos, and the display should look like part of one product with the collector app.
+Options: 1) light staff theme 2) dark capture theme 3) keep the old page.
+Chosen: 1, with person cards in a 2 by 2 grid, no logos, and IBM Plex Sans bundled.
+Why: The owner picked it, and it matches the collector's main screens. Removing logos fits keeping the repo general. Bundling the font keeps a kiosk's look the same with no internet.
+Trade-off: Dark would read better in a dim space, so check the contrast at a real gate. The three font files add about 600 KB to the image.
+Revisit if: The light theme is hard to read at a gate in real conditions.
+
 ## D-009: Turn on Kafka SASL by setting `KAFKA_USERNAME`
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Design from the CCTV session, for decision D-036, step 3c.
@@ -27,7 +37,7 @@ Revisit if: No deployment uses `PROJECT_SERVICES_PORT` any more, so it can go.
 Date: 2026-10-31. Model: Claude Opus 5.5. Recommended by the CCTV session.
 Context: With every camera on one display, one camera's `ERROR` in the queue hid every other camera's rows, because the page shows a control message alone. Clearing it on the next person made it vanish in a second at a busy gate, so nobody would fix the camera.
 Options: 1) a per-camera strip, separate from the rows 2) clear the error on the next person 3) keep the error in the queue.
-Chosen: 1, at the top of the screen, because four rows fill the main area and a strip under them overlapped the last row.
+Chosen: 1, under the header, above the person cards, because four rows fill the main area and a strip under them overlapped the last row.
 Why: Person rows and camera health stop competing for the same space, and an error stays until that camera recovers.
 Trade-off: The strip is in memory and is emptied when the consumer is rebuilt, so it relies on the producer re-sending `ERROR`, which the CCTV side confirmed it does. More than about 3 lines at once run into the banner below.
 Revisit if: The producer stops re-sending, or a point has enough cameras to fill the strip.

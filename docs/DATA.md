@@ -18,7 +18,7 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 - **Shape:** the JSON body from the image server, a list in request order of one-key objects: `{"<id>": "<base64 jpg>"}`.
 - **Size:** at most 4 rows, each with a base64 image. Image size is set by the image server.
 - **Written by:** the consumer thread. It replaces the value on a 200, and clears it on an outage or after 15 idle seconds.
-- **Read by:** the Socket.IO handlers, once every 100 ms per open page, and `index` at page load.
+- **Read by:** the Socket.IO handlers, once every 100 ms per open page.
 - **Why whole-list replacement:** the browser redraws everything, so there is no diffing to get wrong. The cost is that every poll resends every image, about 10 times a second per screen.
 - **Concurrency:** there is no lock. A replacement swaps the reference, so a reader sees the old or new list, never a mix. The `clear()` paths mutate in place, and a reader can at worst see an empty list a moment early.
 

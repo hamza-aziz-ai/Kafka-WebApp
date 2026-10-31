@@ -141,21 +141,21 @@ sequenceDiagram
     end
     T--)B: 4. new_message (ERROR or SUCCESS status)
     alt Message contains ERROR
-        B->>B: 5. Show red text until a SUCCESS or normal rows arrive
+        B->>B: 5. Show a red panel until a SUCCESS or normal rows arrive
     else Message contains SUCCESS
-        B->>B: 6. Show green text for 5 s, or 2 minutes for Getting Started
+        B->>B: 6. Show a green panel for 5 s, or 2 minutes for Getting Started
     else Normal rows or empty
-        B->>B: 7. Show the latest rows, unless a status is being held
+        B->>B: 7. Show person cards or the face guide, unless a status is being held
     end
 ```
 
 1. **Load.** `index` renders `templates/index.html`. The page loads `socket.io.js` from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 2. **Connect.** `handle_connect` sends the current value straight away.
-3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page draws as a strip at the top of the screen. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
+3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page draws as amber and green chips under the header. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
 4. **Push.** Status messages use `socketio.emit` once and are not stored in `messages_to_display`, so a page that loads after the push does not see them.
-5. **Error.** An ERROR stays on screen until a SUCCESS or normal rows arrive.
-6. **Success.** A SUCCESS stays for 5 seconds, or for 2 minutes for the `Getting Started` text.
-7. **Rows.** Person IDs are written with `textContent`, and each image is set from a base64 `data:` URL.
+5. **Error.** An ERROR fills the content area as a red panel until a SUCCESS or normal rows arrive.
+6. **Success.** A SUCCESS fills the content area as a green panel for 5 seconds, or for 2 minutes with a progress bar for the `Getting Started` text.
+7. **Rows.** Each person is a card, with the newest first and marked in teal. Person IDs are written with `textContent`, and each image is set from a base64 `data:` URL. With no rows the page shows a face guide. The server repeats itself every 100 ms, so the page redraws only when the content changes, which also stops the progress bar restarting.
 
 ## F4. The consumer thread dies
 

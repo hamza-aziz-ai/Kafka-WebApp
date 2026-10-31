@@ -24,9 +24,7 @@ Additionally, you can walk through the following link to do your custom configur
 ```tree
 Kafka-WebApp
    ├── static/
-   │   └── img/
-   |       ├── camera-logo.png
-   |       └── nvidia-logo.png
+   │   └── fonts/
    ├── templates/
    │   └── index.html
    ├── app.py

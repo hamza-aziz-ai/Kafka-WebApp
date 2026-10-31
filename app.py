@@ -15,6 +15,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     KAFKA_PARTITIONS, \
     KAFKA_PARTITION_CHECK_INTERVAL, \
     CAMERA_SUCCESS_SECONDS, \
+    DISPLAY_LOCATION, \
     KAFKA_SECURITY_CONF, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
@@ -133,7 +134,7 @@ def _consume_messages():
             if not successful_reconnection_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
-                socketio.emit('new_message', {'message': [{'SUCCESS': "🛜 Network Reconnection Successful 🛜"}]})
+                socketio.emit('new_message', {'message': [{'SUCCESS': "Network Reconnection Successful"}]})
                 successful_reconnection_message_sent = True
                 connection_failure_message_sent = False
                 feedback_client_logger.info("Network Reconnection Successful")
@@ -143,7 +144,7 @@ def _consume_messages():
                 if not project_restart_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'SUCCESS': "✅ Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes ✅"}]})
+                    socketio.emit('new_message', {'message': [{'SUCCESS': "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes"}]})
                     feedback_client_logger.info("Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes")
                     time.sleep(2 * 60)
 
@@ -213,7 +214,7 @@ def _consume_messages():
                 if services_ping_fail >= NETWORK_FAIL_CHECK and not project_services_down_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'ERROR': "⚠️ Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue ⚠️"}]})
+                    socketio.emit('new_message', {'message': [{'ERROR': "Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue"}]})
                     project_services_down_message_sent = True
                     project_restart_message_sent = False
                     feedback_client_logger.error("Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue")
@@ -224,7 +225,7 @@ def _consume_messages():
             if server_ping_fail >= NETWORK_FAIL_CHECK and not connection_failure_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
-                socketio.emit('new_message', {'message': [{'ERROR': "⚠️ Network Issue: Unable to Connect to the Server ⚠️"}]})
+                socketio.emit('new_message', {'message': [{'ERROR': "Network Issue: Unable to Connect to the Server"}]})
                 connection_failure_message_sent = True
                 successful_reconnection_message_sent = False
                 project_services_down_message_sent = False
@@ -273,7 +274,7 @@ def handle_check_updates():
 
 @app.route('/')
 def index():
-    return render_template('index.html', message=messages_to_display)
+    return render_template('index.html', location=DISPLAY_LOCATION)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9090)

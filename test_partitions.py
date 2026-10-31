@@ -1,6 +1,7 @@
 """Checks partition, queue, camera status, health check and Kafka login logic without a broker. Run: python test_partitions.py"""
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -142,6 +143,20 @@ def security_conf(**env):
     return subprocess.run([sys.executable, "-c", code], env={**full_env, **env}, capture_output=True, text=True)
 
 
+def check_page():
+    response = app.app.test_client().get("/")
+    page = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert parameters.DISPLAY_LOCATION in page
+    assert "static/img" not in page and "nvidia" not in page.lower()
+    for font in ("regular", "medium", "semibold"):
+        assert f"fonts/ibm_plex_sans_{font}.ttf" in page
+        assert app.app.test_client().get(f"/static/fonts/ibm_plex_sans_{font}.ttf").status_code == 200
+    # app.py and the page must agree on this text, or the 2 minute hold stops working
+    start = "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes"
+    assert f'"{start}"' in page and f'"{start}"' in pathlib.Path("app.py").read_text(encoding="utf-8")
+
+
 def check_kafka_login():
     assert json.loads(security_conf().stdout) == {"security.protocol": "PLAINTEXT"}
     assert json.loads(security_conf(KAFKA_USERNAME="acme_display", KAFKA_PASSWORD="x").stdout) == {
@@ -153,7 +168,7 @@ def check_kafka_login():
 
 
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

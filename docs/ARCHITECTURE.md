@@ -13,8 +13,8 @@ This system has no customers yet. It is being run through simulated real-world c
 | `app.py` | The Flask and Socket.IO server, the consumer thread and its health checks, the watchdog thread, and the in-memory message state |
 | `parameters.py` | All settings: addresses, ports, topic, consumer group, display size and timings, read from the environment where a value differs by host |
 | `custom_logging.py` | The log file layout (`logs/<year>/<month>/raspberry.log`), daily rotation and the 31 day backup limit |
-| `templates/index.html` | The display page: layout, polling, and how long each status stays on screen |
-| `static/img/` | Page logos |
+| `templates/index.html` | The display page: layout and theme, polling, and how long each status stays on screen |
+| `static/fonts/` | Bundled IBM Plex Sans, under the licence in `OFL.txt`, so that a kiosk renders the same with no internet |
 | `Dockerfile` | The image: pinned base, non-root `app` user, TCP health check on port 9090 |
 | `test_partitions.py` | Broker-free checks of partition selection and the message queue. CI does not run it yet |
 | `.github/workflows/` | `ci.yml` (lint, secrets, image build and smoke test), `automerge.yml` (merge and branch delete), `release.yml` (version, images, tag, release) |

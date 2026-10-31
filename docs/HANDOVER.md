@@ -15,9 +15,9 @@ In progress:
 - PR #5: `group.id` becomes `<topic>.display`, and `IMAGE_SERVER_ADDRESS` can be set from the environment (CCTV decision D-036, steps 1 and 2).
 - PR #6: removes the `client_log` handler. Before the fix, an anonymous client could write to `client_console.log`.
 - PR #7: 5 second timeout on image server calls. Before the fix, a hung server blocked the consumer thread.
-- PR #8: removes the company logo, so the repo stays general.
+- PR #8: removes the company logo, so the repo stays general. The redesign removes the last two logos.
 - PR #9: the docs. The detailed docs describe the code with #5, #6 and #7 merged.
-- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, adds `PROJECT_SERVICES` with new default ports for CCTV PR #62, and adds SASL login for CCTV decision D-036, step 3c. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
+- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, adds `PROJECT_SERVICES` with new default ports for CCTV PR #62, and adds SASL login for CCTV decision D-036, step 3c, and redesigns the page in the Face-Dataset-Collector light theme with no logos. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.

@@ -62,6 +62,9 @@ KAFKA_PARTITIONS = _parse_partitions(os.getenv("KAFKA_PARTITIONS", ""))
 # Seconds between checks for partitions added with a new camera
 KAFKA_PARTITION_CHECK_INTERVAL = 60
 
+# Shown on the screen: the topic without its client prefix, so acme.maingate_entry reads Maingate Entry
+DISPLAY_LOCATION = CONFLUENT_KAFKA_TOPIC.rpartition(".")[2].replace("_", " ").title()
+
 # The group lives under the topic's client prefix, so a client's Kafka permissions cover it
 CONFLUENT_KAFKA_GROUP = f"{CONFLUENT_KAFKA_TOPIC}.display"
 
