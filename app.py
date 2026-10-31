@@ -3,7 +3,6 @@ import secrets
 import socket
 import threading
 import time
-import json
 import requests
 from confluent_kafka import Consumer, TopicPartition, OFFSET_END
 from flask import Flask, render_template
@@ -61,7 +60,7 @@ def ping_project_services() -> bool:
 def post_message_queue_and_get_images(data):
     global messages_to_display
     try:
-        response = requests.post(IMAGE_SERVER_ADDRESS, data=data)
+        response = requests.post(IMAGE_SERVER_ADDRESS, json=data)  # json= sets Content-Type; FastAPI rejects a body without it (422)
         if response.status_code == 200:
             messages_to_display = response.json()
         else:
@@ -149,7 +148,7 @@ def _consume_messages():
                                 message_queue.insert(0, decoded_kafka_message)
 
                         # print(message_queue)
-                        data = json.dumps({"messages": message_queue})
+                        data = {"messages": message_queue}
                         post_message_queue_and_get_images(data)
                         # message_queue.clear()
                         last_update_time = time.time()
