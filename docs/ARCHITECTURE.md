@@ -46,7 +46,7 @@ flowchart TD
     subgraph dgx["`CCTV host (the DGX), IP_ADDRESS`"]
         Q[("`Kafka 9092`")]:::outside
         I["`Display-image server 20013`"]:::outside
-        S["`Other services: InsightFace, Milvus, Redis, Database-Controller, Kafka-Message-Controller, Face Liveness`"]:::outside
+        S["`Other services: InsightFace, Milvus, Redis, reporting API, Face Liveness`"]:::outside
     end
     N["`cdnjs.cloudflare.com`"]:::outside
 
@@ -64,7 +64,7 @@ flowchart TD
     classDef outside fill:#e2e3e5,stroke:#565e64,color:#000
 ```
 
-The app talks to only two services on the CCTV host: Kafka and the display-image server. It never calls the others; it only checks that their ports accept connections, because an attendance display should say the system is down when any part of it is. `PROJECT_SERVICES_PORT` narrows that list on a host that does not run everything.
+The app talks to only two services on the CCTV host: Kafka and the display-image server. It never calls the others; it only checks that their ports accept connections, because an attendance display should say the system is down when any part of it is. `PROJECT_SERVICES` sets that list exactly, and can name a host per service, so a display inside the CCTV stack can reach services that are not published on the host. Otherwise `PROJECT_SERVICES_PORT` narrows the default list. Both exist because older images crash on `host:port` in `PROJECT_SERVICES_PORT`, while they ignore `PROJECT_SERVICES`.
 
 On a central host, each client's display must point at its own image server through `IMAGE_SERVER_ADDRESS`. In the CCTV stack that is `http://display-image-server:20013/post_images`. A display left on the wrong server would show another client's faces.
 

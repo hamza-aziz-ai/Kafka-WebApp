@@ -1,4 +1,4 @@
-"""Checks partition, queue and camera status logic without a broker. Run: python test_partitions.py"""
+"""Checks partition, queue, camera status and health check logic without a broker. Run: python test_partitions.py"""
 import os
 import subprocess
 import sys
@@ -100,8 +100,44 @@ def check_startup_rejects_bad_value():
     assert result.returncode != 0 and "KAFKA_PARTITIONS must be" in result.stderr, result
 
 
+def run_parameters(**env):
+    full_env = {key: value for key, value in os.environ.items() if key not in ("PROJECT_SERVICES", "PROJECT_SERVICES_PORT")}
+    code = "import parameters as p; print(p.PROJECT_SERVICES)"
+    return subprocess.run([sys.executable, "-c", code], env={**full_env, "IP_ADDRESS": "198.51.100.7", **env}, capture_output=True, text=True)
+
+
+def check_project_services():
+    ip = "198.51.100.7"
+    bare_and_named = run_parameters(PROJECT_SERVICES="6385, 9092,db-controller:20001,10.0.0.5:20013")
+    assert bare_and_named.stdout.strip() == str([(ip, 6385), (ip, 9092), ("db-controller", 20001), ("10.0.0.5", 20013)]), bare_and_named
+
+    for bad in ("abc", "6385,", "host:", ":20001", "a:b:20001", "0", "70000", "host name:20001"):
+        result = run_parameters(PROJECT_SERVICES=bad)
+        assert result.returncode != 0 and "PROJECT_SERVICES entries must be" in result.stderr, (bad, result)
+
+    # Unset or blank falls back to PROJECT_SERVICES_PORT, then to the defaults
+    assert run_parameters(PROJECT_SERVICES_PORT="1,2").stdout.strip() == str([(ip, 1), (ip, 2)])
+    assert run_parameters(PROJECT_SERVICES="  ", PROJECT_SERVICES_PORT="1").stdout.strip() == str([(ip, 1)])
+    defaults = parameters.DEFAULT_PROJECT_SERVICES_PORT
+    assert 20001 not in defaults and 20012 not in defaults and 9090 in defaults
+    assert {6385, 19000, 19001, 19530, 9092, 6381, 20013, 6386, 6970, 6971} <= set(defaults)
+    assert str([(ip, port) for port in defaults]) == run_parameters().stdout.strip()
+
+
+def check_probes_use_each_host():
+    probed = []
+    original_services, original_ping = app.PROJECT_SERVICES, app.ping_server
+    app.PROJECT_SERVICES = [("192.0.2.1", 9092), ("db-controller", 20001), ("image-server", 20013)]
+    app.ping_server = lambda host, port: probed.append((host, port)) or port != 20001
+    try:
+        assert app.ping_project_services() is False
+    finally:
+        app.PROJECT_SERVICES, app.ping_server = original_services, original_ping
+    assert probed == [("192.0.2.1", 9092), ("db-controller", 20001)], probed
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

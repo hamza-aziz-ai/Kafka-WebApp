@@ -19,7 +19,8 @@ Then open `http://<host>:9090`.
 | `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
-| `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports that must answer before consuming starts |
+| `PROJECT_SERVICES` | not set | Comma-separated `host:port` or bare port entries that must answer before consuming starts. A bare port means `IP_ADDRESS`. Use it for services not published on the host, such as `9092,display-image-server:20013`. A malformed entry stops the app at startup |
+| `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports on `IP_ADDRESS` to check when `PROJECT_SERVICES` is not set |
 | `SECRET_KEY` | random at each start | Flask session key |
 
 To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md).
@@ -55,7 +56,7 @@ flowchart TD
 4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
 5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
 6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws them.
-7. **Check health.** Every pass of the loop checks TCP ports on the server, first the host, then each service. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
+7. **Check health.** Every pass of the loop checks TCP ports, first the host, then each service in `PROJECT_SERVICES`, or in `PROJECT_SERVICES_PORT` if that is not set. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
 8. **Report status.** An outage puts a red message on screen, and recovery puts a green one. A camera problem shows as a red line in a strip at the top of the screen until that camera recovers, then as a green line for 5 seconds. It never hides the rows. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
 9. **Clear.** After 15 seconds with no update, the screen is cleared so that old rows do not linger.
 

@@ -17,14 +17,14 @@ In progress:
 - PR #7: 5 second timeout on image server calls. Before the fix, a hung server blocked the consumer thread.
 - PR #8: removes the company logo, so the repo stays general.
 - PR #9: the docs. The detailed docs describe the code with #5, #6 and #7 merged.
-- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, and adds the per-camera status strip. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
+- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, and adds `PROJECT_SERVICES` with new default ports for CCTV PR #62. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
 - SASL/SCRAM is coming in CCTV decision D-036, step 3c (`KAFKA_USERNAME`, `KAFKA_PASSWORD`). This app has no support yet, so it will lose Kafka access when that lands.
 - `cors_allowed_origins="*"` lets any origin connect.
 - Anyone who can reach port 9090 can see the person IDs and face images on the display, because the page and the socket have no auth.
 - Kafka consumers are dropped with `kafka_consumer = None` and never closed, on poll failure and on every outage path.
-- Every consumer loop opens up to 13 TCP connections to the DGX before it polls for one message, which is likely the first throughput limit.
+- Every consumer loop opens up to 12 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
 - `socket.io.js` loads from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 - The app runs on the Flask development server.
 - There are no automated tests of app behaviour. CI runs lint, gitleaks, an image build and an import smoke test only.

@@ -27,7 +27,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 
 ## Limits, first expected first
 
-1. **Throughput.** Each pass makes up to 13 TCP connections before it polls for one message, then one blocking POST. On a slow link, sustained bursts will lag. No limit has been measured.
+1. **Throughput.** Each pass makes up to 12 TCP connections with the default list before it polls for one message, then one blocking POST. On a slow link, sustained bursts will lag. No limit has been measured.
 2. **Screens.** Every open page polls 10 times a second and receives all images each time, so traffic grows with each screen and image size.
 3. **Queue size.** The display shows 4 people. In a busy moment, earlier rows are pushed off the screen before anyone reads them.
 4. **Cameras per screen.** Every camera at a point now shares one consumer loop and 4 rows, so limits 1 and 3 arrive sooner as cameras are added. No limit has been measured.
@@ -36,6 +36,8 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 ## Known behaviour worth checking in simulation
 
 - Anything published during a services outage or the 2 minute restart wait is never shown, because the consumer is rebuilt at `OFFSET_END`.
+- `PROJECT_SERVICES` entries that use a service name need DNS. A name that does not resolve counts as down, and a slow lookup slows every pass, because the 0.5 second timeout does not cover it.
+- The defaults include Redis (6381) and Face Liveness (6386, 6970, 6971). If a host does not run them, the display reports a services outage until `PROJECT_SERVICES` or `PROJECT_SERVICES_PORT` is set.
 - Camera status lines are lost on a display restart or a rebuilt consumer. If the producer does not re-send `ERROR` while a problem lasts, a broken camera drops off the strip: check this in simulation.
 - A page that loads during an outage shows no status, because statuses are pushed once and not stored.
 - After a Kafka reconnect, messages published during the gap are never shown, because the new consumer starts at `OFFSET_END`.

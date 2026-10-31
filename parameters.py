@@ -1,4 +1,5 @@
 import os
+import re
 
 # Project Services
 DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "192.168.12.1")
@@ -11,13 +12,26 @@ DEFAULT_PROJECT_SERVICES_PORT = [
     19530,                  # Milvus Vector Database
     9092,                   # Kafka Broker
     6381,                   # Redis Database
-    20001,                  # Database-Controller
-    20012,                  # Kafka-Message-Controller
+    9090,                   # Reporting API, proof that the app stack is up
     20013,                  # Display-Image-Server
     6386, 6970, 6971        # Face Liveness Detection
 ]
 # Comma-separated override, for a host that does not run every service above
 PROJECT_SERVICES_PORT = [int(p) for p in os.getenv("PROJECT_SERVICES_PORT", "").split(",") if p] or DEFAULT_PROJECT_SERVICES_PORT
+
+def _parse_services(value: str) -> list[tuple[str, int]]:
+    services = []
+    for entry in value.split(","):
+        match = re.fullmatch(r"(?:([A-Za-z0-9._-]+):)?([0-9]{1,5})", entry.strip())
+        if not match or not 0 < int(match[2]) < 65536:
+            raise SystemExit(f"PROJECT_SERVICES entries must be host:port or port, got {entry!r}")
+        services.append((match[1] or DGX_IP_ADDRESS, int(match[2])))
+    return services
+
+# Comma-separated host:port or bare port entries (a bare port means IP_ADDRESS), for services not published on the host
+# Must stay a separate name from PROJECT_SERVICES_PORT: older images crash on host:port there, and they ignore this one
+PROJECT_SERVICES_ENV = os.getenv("PROJECT_SERVICES", "")
+PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV.strip() else [(DGX_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT]
 
 # Kafka IP and Port
 CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS

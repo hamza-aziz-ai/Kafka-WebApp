@@ -23,7 +23,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     HOST_CHECK_PORT, \
     NETWORK_FAIL_CHECK, \
     IMAGE_SERVER_TIMEOUT, \
-    PROJECT_SERVICES_PORT
+    PROJECT_SERVICES
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
@@ -63,7 +63,7 @@ def ping_server(ip: str, port: int):
         return False
 
 def ping_project_services() -> bool:
-    return all(ping_server(DGX_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT)
+    return all(ping_server(host, port) for host, port in PROJECT_SERVICES)
 
 def post_message_queue_and_get_images(data):
     global messages_to_display

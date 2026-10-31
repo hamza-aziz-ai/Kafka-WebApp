@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-008: Add `PROJECT_SERVICES` for health checks, and change the default ports
+
+Date: 2026-10-31. Model: Claude Opus 5.5. Requested by the CCTV session with the owner's approval, for CCTV PR #62.
+Context: CCTV PR #62 stops publishing the database controller (20001) and feedback controller (20012) on the host, so a port check on `IP_ADDRESS` would show a failure forever.
+Options: 1) a new variable taking `host:port` or a bare port 2) `host:port` syntax in `PROJECT_SERVICES_PORT` 3) drop those two checks everywhere.
+Chosen: 1, and the default list drops 20001 and 20012 and adds 9090, the reporting API, as proof that the app stack is up.
+Why: The old image runs `int(p)` on `PROJECT_SERVICES_PORT`, so it would crash on `host:port`, and CCTV's compose sets the variable before the new image is pinned. Old images ignore a new name.
+Trade-off: Two variables do a similar job. A display using the defaults no longer checks the two controllers, and a service name adds a DNS lookup to each probe, which the 0.5 second timeout does not cover.
+Revisit if: No deployment uses `PROJECT_SERVICES_PORT` any more, so it can go.
+
 ## D-007: Show camera problems in a separate status strip
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Recommended by the CCTV session.
