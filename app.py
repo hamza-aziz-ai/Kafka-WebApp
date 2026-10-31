@@ -217,11 +217,6 @@ def handle_connect():
 def handle_check_updates():
     emit('new_message', {'message': messages_to_display})
 
-@socketio.on('client_log')
-def handle_client_log(data):
-    with open('client_console.log', 'a') as f:
-        f.write(f"{data.get('message', '')}\n")
-
 @app.route('/')
 def index():
     return render_template('index.html', message=messages_to_display)
