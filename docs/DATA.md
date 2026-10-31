@@ -30,7 +30,7 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 - **Read by:** the Socket.IO handlers, once every 100 ms per open page, through `current_camera_status`, which skips expired entries.
 - **Why a dict:** the latest state per camera is the whole need. A new message for a camera replaces the old one, so a repeated `ERROR` does not add lines.
 - **Concurrency:** no lock. The reader copies the items with `list()` before sorting, so a write during a read cannot raise.
-- **Trade-off:** it is not persisted. A display restart starts empty and relies on the producer re-sending `ERROR`.
+- **Trade-off:** it is not persisted. A display restart starts empty and refills from the producer's repeated `ERROR` messages. Each repeat only overwrites one entry and makes no network call, so frequent re-sends cost little here.
 
 ## `assigned_partitions`
 

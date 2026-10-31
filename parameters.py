@@ -11,10 +11,8 @@ DEFAULT_PROJECT_SERVICES_PORT = [
     6385, 19000, 19001,     # InsightFace
     19530,                  # Milvus Vector Database
     9092,                   # Kafka Broker
-    6381,                   # Redis Database
     9090,                   # Reporting API, proof that the app stack is up
-    20013,                  # Display-Image-Server
-    6386, 6970, 6971        # Face Liveness Detection
+    20013                   # Display-Image-Server
 ]
 # Comma-separated override, for a host that does not run every service above
 PROJECT_SERVICES_PORT = [int(p) for p in os.getenv("PROJECT_SERVICES_PORT", "").split(",") if p] or DEFAULT_PROJECT_SERVICES_PORT

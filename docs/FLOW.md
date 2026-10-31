@@ -109,7 +109,7 @@ flowchart TD
     classDef err fill:#f8d7da,stroke:#b02a37,color:#000
 ```
 
-1. **Probe.** `ping_server` opens a TCP connection with a 0.5 second timeout, first to `HOST_CHECK_PORT` (22), then to each entry in `PROJECT_SERVICES` until one fails. That is up to 12 connections per pass with the default list. `PROJECT_SERVICES` comes from the variable of that name, which can name a host for each service, or else from the ports in `PROJECT_SERVICES_PORT` on `IP_ADDRESS`. A probe only proves a port accepts connections, not that the service behind it works.
+1. **Probe.** `ping_server` opens a TCP connection with a 0.5 second timeout, first to `HOST_CHECK_PORT` (22), then to each entry in `PROJECT_SERVICES` until one fails. That is up to 8 connections per pass with the default list. `PROJECT_SERVICES` comes from the variable of that name, which can name a host for each service, or else from the ports in `PROJECT_SERVICES_PORT` on `IP_ADDRESS`. A probe only proves a port accepts connections, not that the service behind it works.
 2. **Host check.** The result of `HOST_CHECK_PORT` alone decides whether the network is up.
 3. **Count.** `server_ping_fail` goes up by one. If probes time out, 10 passes take about 10 seconds. If connections are refused at once, they take far less.
 4. **Announce once.** `message_queue` and `messages_to_display` are cleared, the ERROR `Network Issue: Unable to Connect to the Server` is emitted once, and the Kafka consumer reference is dropped.

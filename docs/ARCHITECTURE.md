@@ -46,7 +46,7 @@ flowchart TD
     subgraph dgx["`CCTV host (the DGX), IP_ADDRESS`"]
         Q[("`Kafka 9092`")]:::outside
         I["`Display-image server 20013`"]:::outside
-        S["`Other services: InsightFace, Milvus, Redis, reporting API, Face Liveness`"]:::outside
+        S["`Other services: InsightFace, Milvus, reporting API`"]:::outside
     end
     N["`cdnjs.cloudflare.com`"]:::outside
 
@@ -130,7 +130,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Topic | `<location>_<point>`, becoming `<client>.<location>_<point>` (with `owner.` for the owner) from CCTV decision D-036, step 3c |
 | Partition | Camera number - 1, so `cctv-camera-3` goes to partition 2. The count only grows, when a camera is added |
 | Person message | Value is the plain person ID, not a name and not JSON. Key is the camera name, `<location>_<point>_<camera>`. Only recognised matches are sent, one per person per camera per batch |
-| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts. This app keeps these itself and does not post them to the image server |
+| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts: every 30 seconds for an inaccessible camera, and on every evaluation for low light. `SUCCESS` is sent once per recovery. This app keeps these itself and does not post them to the image server |
 | `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}` |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID, never an error, so an unknown ID cannot be told from a known one by shape |
 | Kafka login, from D-036, step 3c | `SASL_PLAINTEXT` with `SCRAM-SHA-512` on port 9092, as the `<client>_display` user, with Read and Describe on topics `<client>.*` and Read on groups `<client>.*`. `<topic>.display` fits the `<client>.` prefix. This app turns it on when `KAFKA_USERNAME` is set. `SASL_SSL` comes later through `KAFKA_SECURITY_PROTOCOL` |

@@ -23,7 +23,7 @@ Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.
 - Anyone who can reach port 9090 can see the person IDs and face images on the display, because the page and the socket have no auth.
 - Kafka consumers are dropped with `kafka_consumer = None` and never closed, on poll failure and on every outage path.
-- Every consumer loop opens up to 12 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
+- Every consumer loop opens up to 8 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
 - `socket.io.js` loads from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 - The app runs on the Flask development server.
 - There are no automated tests of app behaviour. CI runs lint, gitleaks, an image build and an import smoke test only.
@@ -31,7 +31,7 @@ Broken or risky (found by reading the code, not reproduced or fixed yet):
 
 Assumptions:
 - Unverified: the 5 second timeout. The CCTV session expects tens of milliseconds but has not measured it.
-- Unverified: that the CCTV producer re-sends `ERROR` while a problem lasts. The strip relies on it after a restart or a rebuilt consumer.
+- Verified by the CCTV session against `src/multicam_stream_producer.py`: `ERROR` is re-sent every `IP_CAM_REINIT_WAIT_DURATION` (30 seconds) while a camera is down (lines 314-317), and on every evaluation while it stays dark (around line 226). `SUCCESS` is sent once per recovery. So emptying `camera_status` on a consumer rebuild is safe.
 - Verified: the Kafka and `/post_images` contract, by the CCTV session against its code on 2026-10-31.
 
 Next:

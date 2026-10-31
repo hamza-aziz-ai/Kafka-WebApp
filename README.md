@@ -22,7 +22,7 @@ Then open `http://<host>:9090`.
 | `KAFKA_PASSWORD` | not set | Password for `KAFKA_USERNAME`, required with it. Pass it as a secret, and never commit it |
 | `KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` with a username, otherwise `PLAINTEXT` | Kafka security protocol. `SASL_PLAINTEXT` logs in but does not encrypt, so it is for a trusted network |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
-| `PROJECT_SERVICES` | not set | Comma-separated `host:port` or bare port entries that must answer before consuming starts. A bare port means `IP_ADDRESS`. Use it for services not published on the host, such as `9092,display-image-server:20013`. A malformed entry stops the app at startup |
+| `PROJECT_SERVICES` | not set | Comma-separated `host:port` or bare port entries that must answer before consuming starts. A bare port means `IP_ADDRESS`. Use it for services not published on the host, such as `9092,display-image-server:20013`, or to add ports, such as a host running face liveness detection. A malformed entry stops the app at startup |
 | `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports on `IP_ADDRESS` to check when `PROJECT_SERVICES` is not set |
 | `SECRET_KEY` | random at each start | Flask session key |
 
