@@ -34,7 +34,7 @@ This project has no customers yet. The owner is simulating real-world conditions
 ## Coupled code
 
 - The "Getting Started" status text is duplicated. `_consume_messages` emits it and `templates/index.html:192` matches it exactly to hold the message for 2 minutes, so change both together.
-- Kafka messages starting with `ERROR` or `SUCCESS` are control messages that replace the queue (`_consume_messages`). This app shows what the CCTV system sends, so the [contract](ARCHITECTURE.md#contract-with-the-cctv-system) is shared: check with that project before changing it, and tell it about anything here that changes what is displayed.
+- Kafka messages starting with `ERROR ` or `SUCCESS ` are camera control messages that go to `camera_status` (`update_camera_status`). This app shows what the CCTV system sends, so the [contract](ARCHITECTURE.md#contract-with-the-cctv-system) is shared: check with that project before changing it, and tell it about anything here that changes what is displayed.
 
 ## Keep it general
 

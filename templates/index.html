@@ -102,6 +102,20 @@
             margin: auto auto auto 10px;
         }
 
+        #camera-status {
+            width: 100%;
+            font-size: 2.5vh;
+            text-align: center;
+        }
+
+        .camera-error {
+            color: #ff0000;
+        }
+
+        .camera-success {
+            color: #00ff00;
+        }
+
         #disclaimer {
             display: none;
         }
@@ -112,6 +126,7 @@
 <body>
     <nav>
         <div class="nav_logo">
+            <div id="camera-status"></div>
 	    <div id="disclaimer">Your name will not be displayed if your dataset has not been created</div>
         </div>
         <div class="navlower">
@@ -162,7 +177,21 @@
             // console.log("Connected to server");
         });
 
+        function updateCameraStatus(statuses) {
+            document.getElementById('camera-status').replaceChildren(...statuses.map(status => {
+                const line = document.createElement('div');
+                line.className = status.level === 'ERROR' ? 'camera-error' : 'camera-success';
+                line.textContent = status.text;
+                return line;
+            }));
+        }
+
         socket.on('new_message', function (data) {
+            // Status pushes from the server carry no camera_status, and must leave the strip alone
+            if (data.camera_status) {
+                updateCameraStatus(data.camera_status);
+            }
+
             // if (data.message.length > 0) {
                 // pull out just the keys
                 // const ids = data.message.map(item => Object.keys(item)[0]);

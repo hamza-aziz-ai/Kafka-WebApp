@@ -130,10 +130,9 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Topic | `<location>_<point>`, becoming `<client>.<location>_<point>` (with `owner.` for the owner) from CCTV decision D-036, step 3c |
 | Partition | Camera number - 1, so `cctv-camera-3` goes to partition 2. The count only grows, when a camera is added |
 | Person message | Value is the plain person ID, not a name and not JSON. Key is the camera name, `<location>_<point>_<camera>`. Only recognised matches are sent, one per person per camera per batch |
-| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition |
-| `POST /post_images` | Body is `{"messages": [...]}`. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}`, or `{"ERROR": "<text after the first ': '>"}` and the same for `SUCCESS` |
+| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts. This app keeps these itself and does not post them to the image server |
+| `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}` |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID, never an error, so an unknown ID cannot be told from a known one by shape |
-| Bad control message | One with no `: ` makes the image server raise and return 500 |
 | Coming in D-036, step 3c | SASL/SCRAM with `KAFKA_USERNAME` and `KAFKA_PASSWORD` for the `<client>_display` user, with Read on its topics and groups only. `<topic>.display` already fits the required `<client>.` prefix. This app does not support it yet |
 
 **One screen per entry point by default.** The display reads every partition of its topic, so it shows all cameras at that point. `KAFKA_PARTITIONS` narrows it to chosen cameras, for one screen per camera.
@@ -154,7 +153,8 @@ The threats behind these are in [THREAT.md](THREAT.md).
 | Logic | Where it lives |
 |---|---|
 | What counts as down, and when to announce it | `_consume_messages` with `NETWORK_FAIL_CHECK` |
-| `ERROR` and `SUCCESS` control messages | `_consume_messages`, and in `templates/index.html` for how long they stay on screen. Their format is shared with services outside this repo |
+| Camera `ERROR` and `SUCCESS` control messages | `update_camera_status` and the strip in `templates/index.html`. Their format is shared with the CCTV system |
+| System status messages | `_consume_messages`, and `templates/index.html` for how long they stay on screen |
 | The `Getting Started` wait | The text is duplicated in `app.py` and `templates/index.html`, so change both together |
 | Client separation | `KAFKA_TOPIC`, `CONFLUENT_KAFKA_GROUP` and `IMAGE_SERVER_ADDRESS`, one set per display |
 | Which cameras a display shows | `KAFKA_PARTITIONS` and `assign_new_partitions`. It must stay `assign()`, because displays share a group and `subscribe()` would split the partitions between them |

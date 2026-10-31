@@ -29,6 +29,7 @@ flowchart TD
     B["`**2** poll(0.2) across the assigned partitions`"]:::step
     C{"`**3** Message, error or nothing?`"}:::decide
     D["`**4** Update message_queue`"]:::step
+    K["`Control message: update camera_status`"]:::outcome
     E["`**5** POST queue to the image server`"]:::step
     F[("`Display-image server`")]:::store
     G["`**6** Replace messages_to_display`"]:::step
@@ -37,7 +38,8 @@ flowchart TD
     J["`Keep the old display and log`"]:::err
 
     A --> B --> C
-    C -->|message| D --> E --> F
+    C -->|person ID| D --> E --> F
+    C -->|control message| K
     F -->|200| G --> H
     F -->|not 200, or timeout after 5 s| J
     C -->|Kafka error| I
@@ -54,9 +56,9 @@ flowchart TD
 1. **Publish.** The CCTV system sends one message per recognised person per camera per batch. The value is the plain person ID, the key is the camera name, and the CCTV system sends each camera to its own partition (partition = camera number - 1, so `cctv-camera-3` goes to partition 2). The topic is `KAFKA_TOPIC`, by default `maingate_entry`, and client topics are named `<client>.<location>_<point>`.
 2. **Poll.** `_consume_messages` calls `kafka_consumer.poll(0.2)`. `assign_new_partitions` assigns every partition of the topic at `OFFSET_END`, or only those in `KAFKA_PARTITIONS`, so the display reads from the end and never replays old messages. Its group is `<topic>.display`, which only stores committed offsets, and nothing reads them.
 3. **Branch.** No message returns to the top of the loop. A Kafka error clears `message_queue` and is logged.
-4. **Queue.** A control message starting with `ERROR` or `SUCCESS` replaces the whole queue. The CCTV producer sends these for camera lighting and stream problems, on that camera's own partition. Any other message first removes a control message from the queue, because the page shows a control message alone and one camera's `ERROR` would otherwise hide every other camera's rows. It is then added at the front if it is not already there, and the oldest is dropped once the queue holds `DISPLAY_LIST_SIZE` (4). Dropping duplicates is intended, so one person seen by several cameras or frames shows once.
+4. **Queue.** A message starting with `ERROR ` or `SUCCESS ` is a control message. The CCTV producer sends these for camera lighting and stream problems, on that camera's own partition. It skips the queue, is not sent to the image server, and does not reset the idle timer: `update_camera_status` stores it in `camera_status` by camera, so that it can never hide a person row. An `ERROR` stays until that camera's `SUCCESS` arrives, and a `SUCCESS` shows for `CAMERA_SUCCESS_SECONDS` (5). Any other message is added at the front if it is not already there, and the oldest is dropped once the queue holds `DISPLAY_LIST_SIZE` (4). Dropping duplicates is intended, so one person seen by several cameras or frames shows once.
 5. **Ask for images.** `post_message_queue_and_get_images` posts `{"messages": message_queue}` to `IMAGE_SERVER_ADDRESS`. It uses `json=`, because FastAPI answers 422 without that `Content-Type`, and a 5 second `IMAGE_SERVER_TIMEOUT`, so a hung server cannot freeze this thread.
-6. **Store.** On 200, the response body replaces `messages_to_display`: a list in request order with one single-key object per message. An unknown ID or missing image comes back as a placeholder JPEG under the ID, so it looks like any other row. A control message with no `: ` makes the image server return 500. On any other status or an exception, the old value stays and the problem is logged. `last_update_time` is set in both cases.
+6. **Store.** On 200, the response body replaces `messages_to_display`: a list in request order with one single-key object per message. An unknown ID or missing image comes back as a placeholder JPEG under the ID, so it looks like any other row. On any other status or an exception, the old value stays and the problem is logged. `last_update_time` is set in both cases.
 7. **Show.** The display picks up the new value on its next poll, which is flow F3.
 
 ## F2. Health checks, outages and recovery
@@ -116,12 +118,12 @@ flowchart TD
 7. **Count.** `services_ping_fail` goes up by one.
 8. **Announce once.** The queues are cleared, the ERROR `Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue` is emitted once, and the consumer reference is dropped.
 9. **Restart wait.** After a services outage, the SUCCESS `Getting Started` message is emitted and the thread sleeps for 2 minutes, then emits `Has Been Started` and sleeps 5 more seconds. Nothing is consumed during this wait. `templates/index.html` matches the `Getting Started` text exactly to hold it for 2 minutes, so change both together.
-10. **Consume.** A consumer is created if there is none. If creation fails, the thread waits 5 seconds and starts the next pass. Every `KAFKA_PARTITION_CHECK_INTERVAL` (60) seconds, `assign_new_partitions` reads the topic's partitions and adds any new ones, because the count grows when a camera is added. It uses `incremental_assign`, which leaves partitions already being read alone. A partition listed in `KAFKA_PARTITIONS` that does not exist yet logs a warning and is picked up when it appears. A failed check is retried after 5 seconds. If polling raises, the consumer reference is dropped and the next pass makes a new one.
+10. **Consume.** A consumer is created if there is none, which also empties `camera_status`, because a new consumer starts at `OFFSET_END` and may have missed a `SUCCESS`. If creation fails, the thread waits 5 seconds and starts the next pass. Every `KAFKA_PARTITION_CHECK_INTERVAL` (60) seconds, `assign_new_partitions` reads the topic's partitions and adds any new ones, because the count grows when a camera is added. It uses `incremental_assign`, which leaves partitions already being read alone. A partition listed in `KAFKA_PARTITIONS` that does not exist yet logs a warning and is picked up when it appears. A failed check is retried after 5 seconds. If polling raises, the consumer reference is dropped and the next pass makes a new one.
 11. **Idle clear.** Every pass ends here. After `STATUS_THRESHOLD` (15) seconds without an update, both lists are cleared and an empty message goes to the browser.
 
 ## F3. The display page
 
-The page loads once, then polls over Socket.IO. Person rows and CCTV control messages arrive through this poll. System status messages arrive as pushes from flow F2.
+The page loads once, then polls over Socket.IO. Person rows and the camera status strip arrive through this poll. System status messages arrive as pushes from flow F2.
 
 ```mermaid
 sequenceDiagram
@@ -149,7 +151,7 @@ sequenceDiagram
 
 1. **Load.** `index` renders `templates/index.html`. The page loads `socket.io.js` from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 2. **Connect.** `handle_connect` sends the current value straight away.
-3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
+3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page draws as a strip at the top of the screen. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
 4. **Push.** Status messages use `socketio.emit` once and are not stored in `messages_to_display`, so a page that loads after the push does not see them.
 5. **Error.** An ERROR stays on screen until a SUCCESS or normal rows arrive.
 6. **Success.** A SUCCESS stays for 5 seconds, or for 2 minutes for the `Getting Started` text.

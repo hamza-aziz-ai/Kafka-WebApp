@@ -14,6 +14,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     CONFLUENT_KAFKA_TOPIC, \
     KAFKA_PARTITIONS, \
     KAFKA_PARTITION_CHECK_INTERVAL, \
+    CAMERA_SUCCESS_SECONDS, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
@@ -48,6 +49,9 @@ project_restart_message_sent = not project_services_down_message_sent
 
 kafka_consumer = None
 assigned_partitions = set()
+camera_status = {}
+
+CONTROL_PREFIXES = ("ERROR ", "SUCCESS ")
 
 def ping_server(ip: str, port: int):
     try:
@@ -91,17 +95,23 @@ def assign_new_partitions(consumer):
         feedback_client_logger.info(f"Reading {CONFLUENT_KAFKA_TOPIC} partitions {sorted(assigned_partitions)}")
 
 def update_message_queue(message):
-    global message_queue
-    control_prefixes = ("ERROR", "SUCCESS")
-    if message.startswith(control_prefixes):
-        message_queue = [message]
-    else:
-        # Must drop any control message: the page shows it alone, so one camera's ERROR would hide every other camera's rows
-        message_queue = [queued for queued in message_queue if not queued.startswith(control_prefixes)]
-        if message not in message_queue:
-            if len(message_queue) >= DISPLAY_LIST_SIZE:
-                message_queue.pop()
-            message_queue.insert(0, message)
+    if message not in message_queue:
+        if len(message_queue) >= DISPLAY_LIST_SIZE:
+            message_queue.pop()
+        message_queue.insert(0, message)
+
+def update_camera_status(message):
+    # Format: ERROR <camera>: <text>. Kept apart from the rows, so a camera error stays until cleared and hides no person
+    level, _, rest = message.partition(" ")
+    camera, _, text = rest.partition(": ")
+    expires = None if level == "ERROR" else time.time() + CAMERA_SUCCESS_SECONDS
+    camera_status[camera] = {"level": level, "text": text or rest, "expires": expires}
+
+def current_camera_status():
+    now = time.time()
+    return [{"level": status["level"], "text": status["text"]}
+            for _, status in sorted(list(camera_status.items()), key=lambda item: item[0])
+            if status["expires"] is None or status["expires"] > now]
 
 def _consume_messages():
     global message_queue, last_update_time, messages_to_display
@@ -145,6 +155,8 @@ def _consume_messages():
                     try:
                         kafka_consumer = Consumer(kafka_conf)
                         assigned_partitions.clear()
+                        # A new consumer starts at OFFSET_END and may have missed a SUCCESS; the producer re-sends ERROR while it lasts
+                        camera_status.clear()
                         next_partition_check = 0
                         feedback_client_logger.info("Created a fresh Kafka consumer")
                     except Exception as e:
@@ -182,13 +194,16 @@ def _consume_messages():
                         # timestamp = datetime.fromtimestamp(timestamp_milliseconds / 1000.0).strftime("%d-%m-%Y %I:%M:%S.%f %p")
                         # feedback_client_logger.debug(f"[KAFKA] Key = {key}, Message = {decoded_kafka_message}, Timestamp = {timestamp}")
 
-                        update_message_queue(decoded_kafka_message)
+                        if decoded_kafka_message.startswith(CONTROL_PREFIXES):
+                            update_camera_status(decoded_kafka_message)
+                        else:
+                            update_message_queue(decoded_kafka_message)
 
-                        # print(message_queue)
-                        data = {"messages": message_queue}
-                        post_message_queue_and_get_images(data)
-                        # message_queue.clear()
-                        last_update_time = time.time()
+                            # print(message_queue)
+                            data = {"messages": message_queue}
+                            post_message_queue_and_get_images(data)
+                            # message_queue.clear()
+                            last_update_time = time.time()
                     except Exception as e:
                         feedback_client_logger.exception("Error processing Kafka message")
             else:
@@ -248,11 +263,11 @@ watchdog_thread.start()
 
 @socketio.on('connect')
 def handle_connect():
-    emit('new_message', {'message': messages_to_display})
+    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
 
 @socketio.on('check_updates')
 def handle_check_updates():
-    emit('new_message', {'message': messages_to_display})
+    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
 
 @app.route('/')
 def index():

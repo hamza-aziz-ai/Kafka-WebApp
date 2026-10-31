@@ -51,12 +51,12 @@ flowchart TD
 
 1. **Publish.** The CCTV system writes each recognised person's ID to the topic set by `KAFKA_TOPIC`, with the camera name as the key.
 2. **Read.** A background thread reads every camera at the entry point, because each camera has its own partition, or only those in `KAFKA_PARTITIONS`. It starts from the end of the topic, so a restart shows new recognitions and never replays old ones. It checks for newly added cameras every 60 seconds.
-3. **Queue.** The app keeps up to 4 distinct messages, newest first. A control message starting with `ERROR` or `SUCCESS`, such as a camera problem, replaces the queue, because the screen should show that alone. Duplicates are dropped on purpose, so one person seen by several cameras shows once.
+3. **Queue.** The app keeps up to 4 distinct messages, newest first. Duplicates are dropped on purpose, so one person seen by several cameras shows once. A camera's `ERROR` or `SUCCESS` control message skips the queue and goes to the status strip instead (step 8).
 4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
 5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
 6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws them.
 7. **Check health.** Every pass of the loop checks TCP ports on the server, first the host, then each service. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
-8. **Report status.** An outage puts a red message on screen, and recovery puts a green one. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
+8. **Report status.** An outage puts a red message on screen, and recovery puts a green one. A camera problem shows as a red line in a strip at the top of the screen until that camera recovers, then as a green line for 5 seconds. It never hides the rows. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
 9. **Clear.** After 15 seconds with no update, the screen is cleared so that old rows do not linger.
 
 Each flow is traced step by step in [docs/FLOW.md](docs/FLOW.md).
@@ -125,4 +125,4 @@ What exists and who owns it is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - There are no behaviour tests yet. CI proves the image builds and starts, not that the display works.
 - Nothing alerts on failure. Problems show on the screen or in `logs/`.
 - A kiosk needs internet access when the page loads, because `socket.io.js` comes from a CDN.
-- A control message from one camera shows until the next person is recognised on any camera, so it can be replaced quickly at a busy point.
+- Camera status lines are held in memory and cleared when the consumer is rebuilt, so they rely on the CCTV system re-sending `ERROR` while a problem lasts.

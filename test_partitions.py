@@ -1,7 +1,8 @@
-"""Checks the partition and queue logic without a broker. Run: python test_partitions.py"""
+"""Checks partition, queue and camera status logic without a broker. Run: python test_partitions.py"""
 import os
 import subprocess
 import sys
+import time
 
 os.environ["IP_ADDRESS"] = "192.0.2.1"  # reserved, reaches nothing, so app's threads cannot touch a real Kafka
 os.environ.pop("KAFKA_PARTITIONS", None)
@@ -70,12 +71,27 @@ def check_queue():
         app.update_message_queue(message)
     assert app.message_queue == ["e", "d", "c", "b"], app.message_queue
 
-    app.update_message_queue("ERROR cctv-camera-2: Camera stream is not accessible.")
-    assert app.message_queue == ["ERROR cctv-camera-2: Camera stream is not accessible."]
 
-    # Another camera's person replaces the control message, or the page would hide the row
-    app.update_message_queue("f")
-    assert app.message_queue == ["f"], app.message_queue
+def check_camera_status():
+    app.camera_status.clear()
+    app.update_camera_status("ERROR gate_a_cam2: Camera stream from gate_a_cam2 is not accessible.")
+    app.update_camera_status("ERROR gate_a_cam1: Inadequate lighting condition detected at gate_a_cam1.")
+    assert app.current_camera_status() == [
+        {"level": "ERROR", "text": "Inadequate lighting condition detected at gate_a_cam1."},
+        {"level": "ERROR", "text": "Camera stream from gate_a_cam2 is not accessible."},
+    ], app.current_camera_status()
+
+    # A SUCCESS replaces only its own camera's error, then expires
+    app.CAMERA_SUCCESS_SECONDS = 0.2
+    app.update_camera_status("SUCCESS gate_a_cam2: Camera gate_a_cam2 reconnection successful")
+    assert app.current_camera_status()[1] == {"level": "SUCCESS", "text": "Camera gate_a_cam2 reconnection successful"}
+    time.sleep(0.3)
+    assert [status["level"] for status in app.current_camera_status()] == ["ERROR"]
+
+    # Errors never expire, and a message with no ": " still shows
+    app.camera_status.clear()
+    app.update_camera_status("ERROR gate_a_cam3")
+    assert app.current_camera_status() == [{"level": "ERROR", "text": "gate_a_cam3"}]
 
 
 def check_startup_rejects_bad_value():
@@ -85,7 +101,7 @@ def check_startup_rejects_bad_value():
 
 
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_startup_rejects_bad_value):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

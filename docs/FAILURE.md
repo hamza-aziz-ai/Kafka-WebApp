@@ -13,11 +13,11 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 | Kafka | Topic missing or wrong `KAFKA_TOPIC` | The screen stays blank, and the check repeats every 60 seconds | Log only |
 | Settings | `KAFKA_PARTITIONS` names a partition that does not exist | A warning is logged at every check, and it is picked up when it appears | Log only |
 | Settings | `KAFKA_PARTITIONS` is not whole numbers | The app stops at startup with a clear error | The container exits |
-| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, shown in red until the next person is recognised on any camera | On screen, briefly at a busy point |
+| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, shown as a red line in the strip until that camera's `SUCCESS` | On screen, in the strip |
 | Camera | Added while running | Its partition is picked up within 60 seconds, and anything it sent before then is not shown | Log: `Reading <topic> partitions [...]` |
 | Image server | Unknown person ID or missing image | A placeholder JPEG shows under the ID, with no error | A person spotting the placeholder |
 | Image server | Hung, port open | Each message waits 5 seconds, then the update is dropped. The screen goes blank and the consumer falls behind | Log only |
-| Image server | Non-200 or bad JSON, including a control message with no `: ` | The update is dropped and logged | Log only |
+| Image server | Non-200 or bad JSON | The update is dropped and logged | Log only |
 | Image server | Wrong `IMAGE_SERVER_ADDRESS` | Fails as above, or shows another client's faces if it points at a live server | Log, or a person spotting a wrong face |
 | CDN | Unreachable at page load | The page draws but never updates | The screen shows no rows or status |
 | Browser | Crashes or loses the socket | A status pushed in that moment is lost, because statuses are not stored | The kiosk `Restart=on-abort` covers only aborts |
@@ -36,6 +36,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 ## Known behaviour worth checking in simulation
 
 - Anything published during a services outage or the 2 minute restart wait is never shown, because the consumer is rebuilt at `OFFSET_END`.
+- Camera status lines are lost on a display restart or a rebuilt consumer. If the producer does not re-send `ERROR` while a problem lasts, a broken camera drops off the strip: check this in simulation.
 - A page that loads during an outage shows no status, because statuses are pushed once and not stored.
 - After a Kafka reconnect, messages published during the gap are never shown, because the new consumer starts at `OFFSET_END`.
 - `ping_server` never closes its sockets and relies on the garbage collector. CPython reclaims them at once, but watch the file handle count on a long run.

@@ -2,15 +2,15 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
-## D-007: A person message removes a control message from the queue
+## D-007: Show camera problems in a separate status strip
 
-Date: 2026-10-31. Model: Claude Opus 5.5.
-Context: With every camera on one display, one camera's `ERROR` stayed in the queue. The page shows a control message alone, so it hid the rows of every other camera until 3 more people pushed it out or 15 idle seconds passed.
-Options: 1) drop control messages from the queue when a person message arrives 2) show control messages beside the rows 3) keep them out of the queue.
-Chosen: 1.
-Why: It is the smallest change that keeps recognition visible, and the page already handles the rest.
-Trade-off: A camera error can be replaced by the next person on any camera, so it may show only briefly at a busy point.
-Revisit if: Camera errors need to stay on screen alongside the rows, which needs a page change.
+Date: 2026-10-31. Model: Claude Opus 5.5. Recommended by the CCTV session.
+Context: With every camera on one display, one camera's `ERROR` in the queue hid every other camera's rows, because the page shows a control message alone. Clearing it on the next person made it vanish in a second at a busy gate, so nobody would fix the camera.
+Options: 1) a per-camera strip, separate from the rows 2) clear the error on the next person 3) keep the error in the queue.
+Chosen: 1, at the top of the screen, because four rows fill the main area and a strip under them overlapped the last row.
+Why: Person rows and camera health stop competing for the same space, and an error stays until that camera recovers.
+Trade-off: The strip is in memory and is emptied when the consumer is rebuilt, so it relies on the producer re-sending `ERROR`. More than about 3 lines at once run into the banner below.
+Revisit if: The producer turns out not to re-send, or a point has enough cameras to fill the strip.
 
 ## D-006: Read every partition by default, with `KAFKA_PARTITIONS` to narrow it
 
