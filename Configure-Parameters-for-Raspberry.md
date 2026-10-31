@@ -7,8 +7,7 @@ Kafka-WebApp
    ├── static/
    │   └── img/
    |       ├── camera-logo.png
-   |       ├── nvidia-logo.png
-   │       └── giventures-logo.png
+   |       └── nvidia-logo.png
    ├── templates/
    │   └── index.html
    ├── app.py
