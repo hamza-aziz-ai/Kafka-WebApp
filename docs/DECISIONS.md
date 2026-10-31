@@ -5,7 +5,7 @@ One entry per meaningful decision, newest on top, with the rejected options. Rej
 ## D-011: Default `IP_ADDRESS` to `127.0.0.1`
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Chosen by the owner.
-Context: The default `192.168.12.1` looked like a real site address, and the owner wants the repo kept general.
+Context: The old default looked like a real site address, and the owner wants the repo kept general.
 Options: 1) `127.0.0.1` 2) require `IP_ADDRESS`, and stop at startup without it 3) keep the old default.
 Chosen: 1.
 Why: It reveals nothing about any site, and it suits a display on the same machine as the CCTV stack.
