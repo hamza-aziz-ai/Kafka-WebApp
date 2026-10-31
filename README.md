@@ -14,7 +14,7 @@ Then open `http://<host>:9090`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `IP_ADDRESS` | `127.0.0.1` | Server that runs Kafka and the display image server. In a container `127.0.0.1` is the container itself, so always set this when running with Docker |
+| `IP_ADDRESS` | `127.0.0.1` | Server that runs Kafka and the display image server. The default only suits running directly on that server: in a container `127.0.0.1` is the container itself, so always set this with Docker, and on a Raspberry Pi |
 | `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
 | `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
@@ -26,7 +26,7 @@ Then open `http://<host>:9090`.
 | `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports on `IP_ADDRESS` to check when `PROJECT_SERVICES` is not set |
 | `SECRET_KEY` | random at each start | Flask session key |
 
-To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md).
+To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md). A Pi must set `IP_ADDRESS`.
 
 PR titles must be Conventional Commits: `feat:` gives a minor release, `fix:`/`perf:` a patch, and `type!:` a major.
 

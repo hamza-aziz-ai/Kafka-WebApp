@@ -124,6 +124,9 @@ cd /home/raspberry/Kafka-WebApp
 # Activate the virtual environment
 source venv/bin/activate
 
+# The server that runs Kafka and the display image server. Required: the default only suits running on that server
+export IP_ADDRESS=<server-ip>
+
 # Start the application at a specified port and open it to all incoming networks
 python3 -m flask --app app.py run --host 0.0.0.0 --port 9090
 ```
