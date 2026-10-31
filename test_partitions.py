@@ -108,6 +108,13 @@ def run_parameters(**env):
     return subprocess.run([sys.executable, "-c", code], env={**full_env, "IP_ADDRESS": "198.51.100.7", **env}, capture_output=True, text=True)
 
 
+def check_default_address():
+    env = {key: value for key, value in os.environ.items() if key != "IP_ADDRESS"}
+    code = "import parameters as p; print(p.DGX_IP_ADDRESS)"
+    result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
+    assert result.stdout.strip() == "127.0.0.1", result
+
+
 def check_project_services():
     ip = "198.51.100.7"
     bare_and_named = run_parameters(PROJECT_SERVICES="6385, 9092,db-controller:20001,10.0.0.5:20013")
@@ -168,7 +175,7 @@ def check_kafka_login():
 
 
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

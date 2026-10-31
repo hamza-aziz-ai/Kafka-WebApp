@@ -2,7 +2,7 @@ import os
 import re
 
 # Project Services
-DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "192.168.12.1")
+DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "127.0.0.1")
 
 # Port that shows the host is reachable
 HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))

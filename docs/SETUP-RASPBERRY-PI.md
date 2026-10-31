@@ -49,7 +49,7 @@ The [`parameters.py`](../parameters.py) file contains important information to s
 
 ```python
 # Project Services
-DGX_IP_ADDRESS = <IP Address of DGX>    # e.g., "192.168.12.89"
+DGX_IP_ADDRESS = <IP Address of DGX>    # e.g., "10.0.0.5"
 
 PROJECT_SERVICES_PORT = [
     6385, 19000, 19001,     # InsightFace

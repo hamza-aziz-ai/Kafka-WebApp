@@ -14,7 +14,7 @@ Then open `http://<host>:9090`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `IP_ADDRESS` | `192.168.12.1` | Server that runs Kafka and the display image server |
+| `IP_ADDRESS` | `127.0.0.1` | Server that runs Kafka and the display image server. In a container `127.0.0.1` is the container itself, so always set this when running with Docker |
 | `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
 | `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
