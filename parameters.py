@@ -8,7 +8,7 @@ DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "192.168.12.1")
 HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))
 
 DEFAULT_PROJECT_SERVICES_PORT = [
-    6385, 19000, 19001,     # InsightFace
+    6385, 19000,            # InsightFace
     19530,                  # Milvus Vector Database
     9092,                   # Kafka Broker
     9090,                   # Reporting API, proof that the app stack is up

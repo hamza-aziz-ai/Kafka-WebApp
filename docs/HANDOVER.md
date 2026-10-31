@@ -23,7 +23,7 @@ Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.
 - Anyone who can reach port 9090 can see the person IDs and face images on the display, because the page and the socket have no auth.
 - Kafka consumers are dropped with `kafka_consumer = None` and never closed, on poll failure and on every outage path.
-- Every consumer loop opens up to 8 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
+- Every consumer loop opens up to 7 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
 - `socket.io.js` loads from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 - The app runs on the Flask development server.
 - There are no automated tests of app behaviour. CI runs lint, gitleaks, an image build and an import smoke test only.

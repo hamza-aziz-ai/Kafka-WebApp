@@ -121,7 +121,7 @@ def check_project_services():
     assert run_parameters(PROJECT_SERVICES_PORT="1,2").stdout.strip() == str([(ip, 1), (ip, 2)])
     assert run_parameters(PROJECT_SERVICES="  ", PROJECT_SERVICES_PORT="1").stdout.strip() == str([(ip, 1)])
     defaults = parameters.DEFAULT_PROJECT_SERVICES_PORT
-    assert defaults == [6385, 19000, 19001, 19530, 9092, 9090, 20013], defaults
+    assert defaults == [6385, 19000, 19530, 9092, 9090, 20013], defaults
     assert str([(ip, port) for port in defaults]) == run_parameters().stdout.strip()
 
 

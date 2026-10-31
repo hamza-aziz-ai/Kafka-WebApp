@@ -27,9 +27,9 @@ Revisit if: The broker moves to `SASL_SSL`, which may need a CA setting too.
 Date: 2026-10-31. Model: Claude Opus 5.5. Requested by the CCTV session with the owner's approval, for CCTV PR #62.
 Context: CCTV PR #62 stops publishing the database controller (20001) and feedback controller (20012) on the host, so a port check on `IP_ADDRESS` would show a failure forever.
 Options: 1) a new variable taking `host:port` or a bare port 2) `host:port` syntax in `PROJECT_SERVICES_PORT` 3) drop those two checks everywhere.
-Chosen: 1, and the default list becomes `6385,19000,19001,19530,9092,9090,20013`. It drops 20001 and 20012, adds 9090, the reporting API, as proof that the app stack is up, and drops Redis (6381) and Face Liveness (6386, 6970, 6971), because the CCTV side confirmed that nothing starts Redis and liveness is off.
+Chosen: 1, and the default list becomes `6385,19000,19530,9092,9090,20013`. It drops 20001 and 20012, adds 9090, the reporting API, as proof that the app stack is up, and drops Redis (6381) and Face Liveness (6386, 6970, 6971), because the CCTV side confirmed that nothing starts Redis and liveness is off. It also drops 19001, because one InsightFace container now serves on 19000 only, and a listed port that never opens stops the display reading Kafka.
 Why: The old image runs `int(p)` on `PROJECT_SERVICES_PORT`, so it would crash on `host:port`, and CCTV's compose sets the variable before the new image is pinned. Old images ignore a new name.
-Trade-off: Two variables do a similar job. A display using the defaults no longer checks the two controllers, a host running liveness must add its ports through `PROJECT_SERVICES`, and a service name adds a DNS lookup to each probe, which the 0.5 second timeout does not cover.
+Trade-off: Two variables do a similar job. A display using the defaults no longer checks the two controllers, a host running liveness or a second InsightFace container must add its ports through `PROJECT_SERVICES`, and a service name adds a DNS lookup to each probe, which the 0.5 second timeout does not cover.
 Revisit if: No deployment uses `PROJECT_SERVICES_PORT` any more, so it can go.
 
 ## D-007: Show camera problems in a separate status strip

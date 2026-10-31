@@ -27,7 +27,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 
 ## Limits, first expected first
 
-1. **Throughput.** Each pass makes up to 8 TCP connections with the default list before it polls for one message, then one blocking POST. On a slow link, sustained bursts will lag. No limit has been measured.
+1. **Throughput.** Each pass makes up to 7 TCP connections with the default list before it polls for one message, then one blocking POST. On a slow link, sustained bursts will lag. No limit has been measured.
 2. **Screens.** Every open page polls 10 times a second and receives all images each time, so traffic grows with each screen and image size.
 3. **Queue size.** The display shows 4 people. In a busy moment, earlier rows are pushed off the screen before anyone reads them.
 4. **Cameras per screen.** Every camera at a point now shares one consumer loop and 4 rows, so limits 1 and 3 arrive sooner as cameras are added. No limit has been measured.
@@ -36,6 +36,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 ## Known behaviour worth checking in simulation
 
 - Anything published during a services outage or the 2 minute restart wait is never shown, because the consumer is rebuilt at `OFFSET_END`.
+- A listed port that never opens stops the display for good: no consumer is created until every entry answers, so the screen stays on the red panel. A display in the CCTV stack hit this with 19001.
 - `PROJECT_SERVICES` entries that use a service name need DNS. A name that does not resolve counts as down, and a slow lookup slows every pass, because the 0.5 second timeout does not cover it.
 - Camera status lines are lost on a display restart or a rebuilt consumer, and they return with the next `ERROR`: within 30 seconds for an inaccessible camera, and at the next evaluation for low light.
 - A `SUCCESS` missed during an outage is harmless, because the rebuilt consumer empties the strip and only a live problem re-sends `ERROR`.
