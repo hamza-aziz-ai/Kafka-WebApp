@@ -126,10 +126,10 @@ def _consume_messages():
     next_partition_check = 0
 
     while True:
-        is_dgx_reachable = ping_server(SERVER_IP_ADDRESS, HOST_CHECK_PORT)
+        is_server_reachable = ping_server(SERVER_IP_ADDRESS, HOST_CHECK_PORT)
         are_services_running = ping_project_services()
 
-        if is_dgx_reachable:
+        if is_server_reachable:
             server_ping_fail = 0
             if not successful_reconnection_message_sent:
                 message_queue.clear()
