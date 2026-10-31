@@ -44,7 +44,7 @@ Revisit if: The producer stops re-sending, or a point has enough cameras to fill
 
 ## D-006: Read every partition by default, with `KAFKA_PARTITIONS` to narrow it
 
-Date: 2026-10-31. Model: Claude Opus 5.5. Default agreed between the owner and the CCTV session, relayed by that session.
+Date: 2026-10-31. Model: Claude Opus 5.5. Default confirmed by the owner on 2026-10-31.
 Context: Each camera has its own partition, and the display read partition 0 only, so it showed the first camera at a point. The owner cannot predict whether future clients want one screen per entry point or per camera.
 Options: 1) every partition, with an optional list 2) keep partition 0 3) `subscribe()` with one group per display.
 Chosen: 1, with a check every 60 seconds using `incremental_assign`.
