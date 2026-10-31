@@ -16,6 +16,7 @@ Then open `http://<host>:9090`.
 |---|---|---|
 | `IP_ADDRESS` | `192.168.12.1` | Server that runs Kafka and the display image server |
 | `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
+| `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
 | `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports that must answer before consuming starts |
@@ -49,7 +50,7 @@ flowchart TD
 ```
 
 1. **Publish.** The CCTV system writes each recognised person's ID to the topic set by `KAFKA_TOPIC`, with the camera name as the key.
-2. **Read.** A background thread polls partition 0 from the end of the topic, so a restart shows new recognitions and never replays old ones.
+2. **Read.** A background thread reads every camera at the entry point, because each camera has its own partition, or only those in `KAFKA_PARTITIONS`. It starts from the end of the topic, so a restart shows new recognitions and never replays old ones. It checks for newly added cameras every 60 seconds.
 3. **Queue.** The app keeps up to 4 distinct messages, newest first. A control message starting with `ERROR` or `SUCCESS`, such as a camera problem, replaces the queue, because the screen should show that alone. Duplicates are dropped on purpose, so one person seen by several cameras shows once.
 4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
 5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
@@ -124,4 +125,4 @@ What exists and who owns it is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - There are no behaviour tests yet. CI proves the image builds and starts, not that the display works.
 - Nothing alerts on failure. Problems show on the screen or in `logs/`.
 - A kiosk needs internet access when the page loads, because `socket.io.js` comes from a CDN.
-- It reads partition 0 only, and the CCTV system sends each camera to its own partition (partition = camera number - 1, so `cctv-camera-3` goes to partition 2), so only the first camera at a point reaches the display. Whether every camera should feed one display is being confirmed.
+- A control message from one camera shows until the next person is recognised on any camera, so it can be replaced quickly at a busy point.

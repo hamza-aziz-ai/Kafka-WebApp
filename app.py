@@ -12,7 +12,8 @@ from custom_logging import feedback_client_logger
 from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     CONFLUENT_KAFKA_PORT, \
     CONFLUENT_KAFKA_TOPIC, \
-    CONFLUENT_KAFKA_PARTITION, \
+    KAFKA_PARTITIONS, \
+    KAFKA_PARTITION_CHECK_INTERVAL, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
@@ -46,6 +47,7 @@ successful_reconnection_message_sent = not connection_failure_message_sent
 project_restart_message_sent = not project_services_down_message_sent
 
 kafka_consumer = None
+assigned_partitions = set()
 
 def ping_server(ip: str, port: int):
     try:
@@ -70,6 +72,37 @@ def post_message_queue_and_get_images(data):
     except Exception as e:
         feedback_client_logger.exception(f"Exception in image post: {e}")
 
+def assign_new_partitions(consumer):
+    # Keep assign(), not subscribe(): displays share a group, and subscribe() would split the partitions between them
+    topic = consumer.list_topics(CONFLUENT_KAFKA_TOPIC, timeout=5).topics[CONFLUENT_KAFKA_TOPIC]
+    if topic.error:
+        feedback_client_logger.error(f"Kafka topic {CONFLUENT_KAFKA_TOPIC}: {topic.error}")
+        return
+
+    available = set(topic.partitions)
+    wanted = set(KAFKA_PARTITIONS) or available
+    if wanted - available:
+        feedback_client_logger.warning(f"Partitions {sorted(wanted - available)} are not in {CONFLUENT_KAFKA_TOPIC} yet")
+
+    new_partitions = sorted((wanted & available) - assigned_partitions)
+    if new_partitions:
+        consumer.incremental_assign([TopicPartition(CONFLUENT_KAFKA_TOPIC, partition, OFFSET_END) for partition in new_partitions])
+        assigned_partitions.update(new_partitions)
+        feedback_client_logger.info(f"Reading {CONFLUENT_KAFKA_TOPIC} partitions {sorted(assigned_partitions)}")
+
+def update_message_queue(message):
+    global message_queue
+    control_prefixes = ("ERROR", "SUCCESS")
+    if message.startswith(control_prefixes):
+        message_queue = [message]
+    else:
+        # Must drop any control message: the page shows it alone, so one camera's ERROR would hide every other camera's rows
+        message_queue = [queued for queued in message_queue if not queued.startswith(control_prefixes)]
+        if message not in message_queue:
+            if len(message_queue) >= DISPLAY_LIST_SIZE:
+                message_queue.pop()
+            message_queue.insert(0, message)
+
 def _consume_messages():
     global message_queue, last_update_time, messages_to_display
     global connection_failure_message_sent, project_services_down_message_sent
@@ -77,6 +110,7 @@ def _consume_messages():
 
     server_ping_fail = 0
     services_ping_fail = 0
+    next_partition_check = 0
 
     while True:
         is_dgx_reachable = ping_server(DGX_IP_ADDRESS, HOST_CHECK_PORT)
@@ -110,14 +144,22 @@ def _consume_messages():
                 if kafka_consumer is None:
                     try:
                         kafka_consumer = Consumer(kafka_conf)
-                        topic_partition = TopicPartition(CONFLUENT_KAFKA_TOPIC, CONFLUENT_KAFKA_PARTITION, OFFSET_END)
-                        kafka_consumer.assign([topic_partition])
+                        assigned_partitions.clear()
+                        next_partition_check = 0
                         feedback_client_logger.info("Created a fresh Kafka consumer")
                     except Exception as e:
                         feedback_client_logger.exception("Failed to initialize Kafka Consumer")
                         kafka_consumer = None
                         time.sleep(5)
                         continue
+
+                if time.time() >= next_partition_check:
+                    try:
+                        assign_new_partitions(kafka_consumer)
+                        next_partition_check = time.time() + KAFKA_PARTITION_CHECK_INTERVAL
+                    except Exception as e:
+                        feedback_client_logger.exception("Kafka partition check failed")
+                        next_partition_check = time.time() + 5
 
                 try:
                     message_from_kafka = kafka_consumer.poll(0.2)
@@ -140,14 +182,7 @@ def _consume_messages():
                         # timestamp = datetime.fromtimestamp(timestamp_milliseconds / 1000.0).strftime("%d-%m-%Y %I:%M:%S.%f %p")
                         # feedback_client_logger.debug(f"[KAFKA] Key = {key}, Message = {decoded_kafka_message}, Timestamp = {timestamp}")
 
-                        if decoded_kafka_message.startswith(("ERROR", "SUCCESS")):
-                            message_queue = []
-                            message_queue.insert(0, decoded_kafka_message)
-                        else:
-                            if decoded_kafka_message not in message_queue:
-                                if len(message_queue) >= DISPLAY_LIST_SIZE:
-                                    message_queue.pop()
-                                message_queue.insert(0, decoded_kafka_message)
+                        update_message_queue(decoded_kafka_message)
 
                         # print(message_queue)
                         data = {"messages": message_queue}

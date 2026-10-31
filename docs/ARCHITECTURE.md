@@ -2,7 +2,7 @@
 
 This is the detailed Solution Architecture. The overview is in [README.md](../README.md), and how execution moves is in [FLOW.md](FLOW.md).
 
-**Checked against:** `main` at `0f05931` (release `v0.1.2`) with PR #5 (`7d2473e`), PR #6 (`03c3369`) and PR #7 (`1c6cad9`) merged on top. Those three PRs were open when this was written.
+**Checked against:** `main` at `0f05931` (release `v0.1.2`) with PR #5 (`7d2473e`), PR #6 (`03c3369`), PR #7 (`1c6cad9`) and the all-partitions change merged on top.
 
 This system has no customers yet. It is being run through simulated real-world conditions before going to market, and "client" means a simulated client.
 
@@ -16,6 +16,7 @@ This system has no customers yet. It is being run through simulated real-world c
 | `templates/index.html` | The display page: layout, polling, and how long each status stays on screen |
 | `static/img/` | Page logos |
 | `Dockerfile` | The image: pinned base, non-root `app` user, TCP health check on port 9090 |
+| `test_partitions.py` | Broker-free checks of partition selection and the message queue. CI does not run it yet |
 | `.github/workflows/` | `ci.yml` (lint, secrets, image build and smoke test), `automerge.yml` (merge and branch delete), `release.yml` (version, images, tag, release) |
 
 ## Colour legend
@@ -127,7 +128,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Part | Contract |
 |---|---|
 | Topic | `<location>_<point>`, becoming `<client>.<location>_<point>` (with `owner.` for the owner) from CCTV decision D-036, step 3c |
-| Partition | Camera number - 1, so `cctv-camera-3` goes to partition 2 |
+| Partition | Camera number - 1, so `cctv-camera-3` goes to partition 2. The count only grows, when a camera is added |
 | Person message | Value is the plain person ID, not a name and not JSON. Key is the camera name, `<location>_<point>_<camera>`. Only recognised matches are sent, one per person per camera per batch |
 | Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition |
 | `POST /post_images` | Body is `{"messages": [...]}`. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}`, or `{"ERROR": "<text after the first ': '>"}` and the same for `SUCCESS` |
@@ -135,7 +136,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Bad control message | One with no `: ` makes the image server raise and return 500 |
 | Coming in D-036, step 3c | SASL/SCRAM with `KAFKA_USERNAME` and `KAFKA_PASSWORD` for the `<client>_display` user, with Read on its topics and groups only. `<topic>.display` already fits the required `<client>.` prefix. This app does not support it yet |
 
-**Open question.** This app reads partition 0 only, so it shows only the first camera at a point. If every camera at a point should feed one display, it must assign all partitions of its topic.
+**One screen per entry point by default.** The display reads every partition of its topic, so it shows all cameras at that point. `KAFKA_PARTITIONS` narrows it to chosen cameras, for one screen per camera.
 
 ## Trust boundaries
 
@@ -156,6 +157,7 @@ The threats behind these are in [THREAT.md](THREAT.md).
 | `ERROR` and `SUCCESS` control messages | `_consume_messages`, and in `templates/index.html` for how long they stay on screen. Their format is shared with services outside this repo |
 | The `Getting Started` wait | The text is duplicated in `app.py` and `templates/index.html`, so change both together |
 | Client separation | `KAFKA_TOPIC`, `CONFLUENT_KAFKA_GROUP` and `IMAGE_SERVER_ADDRESS`, one set per display |
+| Which cameras a display shows | `KAFKA_PARTITIONS` and `assign_new_partitions`. It must stay `assign()`, because displays share a group and `subscribe()` would split the partitions between them |
 | Merge and release rules | `automerge.yml` and `release.yml` |
 
 ## Deployment

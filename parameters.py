@@ -25,7 +25,20 @@ CONFLUENT_KAFKA_PORT = 9092
 
 # Kafka topic for messages
 CONFLUENT_KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "maingate_entry")
-CONFLUENT_KAFKA_PARTITION = 0
+
+def _parse_partitions(value: str) -> list[int]:
+    if not value.strip():
+        return []
+    entries = [entry.strip() for entry in value.split(",")]
+    if not all(entry.isascii() and entry.isdigit() for entry in entries):
+        raise SystemExit(f"KAFKA_PARTITIONS must be comma-separated partition numbers (camera number - 1), got {value!r}")
+    return sorted({int(entry) for entry in entries})
+
+# Partitions to show, for one screen per camera (partition = camera number - 1). Empty means every partition of the topic
+KAFKA_PARTITIONS = _parse_partitions(os.getenv("KAFKA_PARTITIONS", ""))
+
+# Seconds between checks for partitions added with a new camera
+KAFKA_PARTITION_CHECK_INTERVAL = 60
 
 # The group lives under the topic's client prefix, so a client's Kafka permissions cover it
 CONFLUENT_KAFKA_GROUP = f"{CONFLUENT_KAFKA_TOPIC}.display"

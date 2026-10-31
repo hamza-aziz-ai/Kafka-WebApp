@@ -2,6 +2,26 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-007: A person message removes a control message from the queue
+
+Date: 2026-10-31. Model: Claude Opus 5.5.
+Context: With every camera on one display, one camera's `ERROR` stayed in the queue. The page shows a control message alone, so it hid the rows of every other camera until 3 more people pushed it out or 15 idle seconds passed.
+Options: 1) drop control messages from the queue when a person message arrives 2) show control messages beside the rows 3) keep them out of the queue.
+Chosen: 1.
+Why: It is the smallest change that keeps recognition visible, and the page already handles the rest.
+Trade-off: A camera error can be replaced by the next person on any camera, so it may show only briefly at a busy point.
+Revisit if: Camera errors need to stay on screen alongside the rows, which needs a page change.
+
+## D-006: Read every partition by default, with `KAFKA_PARTITIONS` to narrow it
+
+Date: 2026-10-31. Model: Claude Opus 5.5. Default agreed between the owner and the CCTV session, relayed by that session.
+Context: Each camera has its own partition, and the display read partition 0 only, so it showed the first camera at a point. The owner cannot predict whether future clients want one screen per entry point or per camera.
+Options: 1) every partition, with an optional list 2) keep partition 0 3) `subscribe()` with one group per display.
+Chosen: 1, with a check every 60 seconds using `incremental_assign`.
+Why: It works for both layouts. `subscribe()` would split partitions between displays that share a group.
+Trade-off: Messages on a new camera's partition are missed until the next check, so for up to 60 seconds, because new partitions start at `OFFSET_END`. Each check blocks the consumer briefly, for up to 5 seconds if the broker is failing.
+Revisit if: Losing a new camera's first minute matters, or the check slows a busy display.
+
 ## D-005: Write the docs against the merged state of open PRs
 
 Date: 2026-10-31. Model: Claude Opus 5.5.

@@ -11,6 +11,7 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 - **Written by:** the consumer thread only.
 - **Read by:** the consumer thread only, to build the POST body.
 - **Why a list:** at 4 items, a linear scan for duplicates and `insert(0, ...)` cost nothing, and order is the point. Membership lookup is O(n) and insert at the front is O(n), which only matters if `DISPLAY_LIST_SIZE` grows a lot.
+- **Control messages:** a person message removes any control message from the queue, because the page shows a control message alone.
 - **Duplicates:** a message already in the queue is ignored, so one person seen by several cameras or frames shows once, which the CCTV side confirmed is intended. The cost is that a repeat sighting does not move to the top.
 
 ## `messages_to_display`
@@ -21,6 +22,14 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 - **Read by:** the Socket.IO handlers, once every 100 ms per open page, and `index` at page load.
 - **Why whole-list replacement:** the browser redraws everything, so there is no diffing to get wrong. The cost is that every poll resends every image, about 10 times a second per screen.
 - **Concurrency:** there is no lock. A replacement swaps the reference, so a reader sees the old or new list, never a mix. The `clear()` paths mutate in place, and a reader can at worst see an empty list a moment early.
+
+## `assigned_partitions`
+
+- **Shape:** a Python set of partition numbers.
+- **Size:** one per camera at the entry point.
+- **Written by:** the consumer thread, in `assign_new_partitions`. It is cleared when a new consumer is created.
+- **Read by:** the consumer thread only.
+- **Why a set:** the only question is which partitions are new, and that is a set difference.
 
 ## Consumer group offsets
 
