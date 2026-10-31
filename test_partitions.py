@@ -1,4 +1,5 @@
-"""Checks partition, queue, camera status and health check logic without a broker. Run: python test_partitions.py"""
+"""Checks partition, queue, camera status, health check and Kafka login logic without a broker. Run: python test_partitions.py"""
+import json
 import os
 import subprocess
 import sys
@@ -136,8 +137,24 @@ def check_probes_use_each_host():
     assert probed == [("192.0.2.1", 9092), ("db-controller", 20001)], probed
 
 
+def security_conf(**env):
+    full_env = {key: value for key, value in os.environ.items() if not key.startswith("KAFKA_")}
+    code = "import json, parameters as p; print(json.dumps(p.KAFKA_SECURITY_CONF))"
+    return subprocess.run([sys.executable, "-c", code], env={**full_env, **env}, capture_output=True, text=True)
+
+
+def check_kafka_login():
+    assert json.loads(security_conf().stdout) == {"security.protocol": "PLAINTEXT"}
+    assert json.loads(security_conf(KAFKA_USERNAME="acme_display", KAFKA_PASSWORD="x").stdout) == {
+        "security.protocol": "SASL_PLAINTEXT", "sasl.mechanism": "SCRAM-SHA-512", "sasl.username": "acme_display", "sasl.password": "x"}
+    assert json.loads(security_conf(KAFKA_USERNAME="a", KAFKA_PASSWORD="x", KAFKA_SECURITY_PROTOCOL="SASL_SSL").stdout)["security.protocol"] == "SASL_SSL"
+    missing_password = security_conf(KAFKA_USERNAME="a")
+    assert missing_password.returncode != 0 and "KAFKA_PASSWORD must be set" in missing_password.stderr
+    assert app.kafka_conf["security.protocol"] == "PLAINTEXT"
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

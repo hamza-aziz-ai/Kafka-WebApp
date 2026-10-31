@@ -18,6 +18,9 @@ Then open `http://<host>:9090`.
 | `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
 | `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
+| `KAFKA_USERNAME` | not set | Kafka login. Setting it turns on SASL with `SCRAM-SHA-512`. Without it the app connects with no login |
+| `KAFKA_PASSWORD` | not set | Password for `KAFKA_USERNAME`, required with it. Pass it as a secret, and never commit it |
+| `KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` with a username, otherwise `PLAINTEXT` | Kafka security protocol. `SASL_PLAINTEXT` logs in but does not encrypt, so it is for a trusted network |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
 | `PROJECT_SERVICES` | not set | Comma-separated `host:port` or bare port entries that must answer before consuming starts. A bare port means `IP_ADDRESS`. Use it for services not published on the host, such as `9092,display-image-server:20013`. A malformed entry stops the app at startup |
 | `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports on `IP_ADDRESS` to check when `PROJECT_SERVICES` is not set |

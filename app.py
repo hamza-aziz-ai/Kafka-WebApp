@@ -15,6 +15,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     KAFKA_PARTITIONS, \
     KAFKA_PARTITION_CHECK_INTERVAL, \
     CAMERA_SUCCESS_SECONDS, \
+    KAFKA_SECURITY_CONF, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
@@ -36,7 +37,8 @@ kafka_conf = {
     'enable.auto.commit': True,
     'session.timeout.ms': 6000,
     'heartbeat.interval.ms': 2000,
-    'max.poll.interval.ms': 300000
+    'max.poll.interval.ms': 300000,
+    **KAFKA_SECURITY_CONF
 }
 
 message_queue = []

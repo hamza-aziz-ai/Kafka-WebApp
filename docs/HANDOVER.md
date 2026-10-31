@@ -17,10 +17,9 @@ In progress:
 - PR #7: 5 second timeout on image server calls. Before the fix, a hung server blocked the consumer thread.
 - PR #8: removes the company logo, so the repo stays general.
 - PR #9: the docs. The detailed docs describe the code with #5, #6 and #7 merged.
-- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, and adds `PROJECT_SERVICES` with new default ports for CCTV PR #62. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
+- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, adds `PROJECT_SERVICES` with new default ports for CCTV PR #62, and adds SASL login for CCTV decision D-036, step 3c. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
-- SASL/SCRAM is coming in CCTV decision D-036, step 3c (`KAFKA_USERNAME`, `KAFKA_PASSWORD`). This app has no support yet, so it will lose Kafka access when that lands.
 - `cors_allowed_origins="*"` lets any origin connect.
 - Anyone who can reach port 9090 can see the person IDs and face images on the display, because the page and the socket have no auth.
 - Kafka consumers are dropped with `kafka_consumer = None` and never closed, on poll failure and on every outage path.
@@ -39,7 +38,6 @@ Next:
 - After 05:30 IST on 2026-11-01, rerun CI on PRs #5, #6 and #7 (`gh run rerun 41190876365`, `41192493079`, `41192556848`) and on PR #8 and the docs PR. Marking a PR ready does not start CI, and `automerge.yml` only sweeps when a CI run finishes. PR #4 is not a draft and will automerge if its rerun passes.
 - After #5 to #9 merge: rebase the commits at the tip of `feat/display-all-partitions` on `main` with `git rebase --onto origin/main origin/docs/system-design`, dropping the local merge commits, then open its PR.
 - Add `python test_partitions.py` to CI, which needs the owner's approval.
-- Add SASL support (`KAFKA_USERNAME`, `KAFKA_PASSWORD`, `KAFKA_SECURITY_PROTOCOL`) before CCTV decision D-036, step 3c. The design is agreed.
 - Run the simulation in `FAILURE.md` and record real results and recovery times.
 - Owner reviews `CONSTRAINTS.md`.
 

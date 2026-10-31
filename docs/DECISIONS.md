@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-009: Turn on Kafka SASL by setting `KAFKA_USERNAME`
+
+Date: 2026-10-31. Model: Claude Opus 5.5. Design from the CCTV session, for decision D-036, step 3c.
+Context: Step 3c requires a login on Kafka, and without one the display loses access.
+Options: 1) SASL when `KAFKA_USERNAME` is set 2) a separate on/off setting 3) ship it only at cutover.
+Chosen: 1, with `SCRAM-SHA-512`, and `KAFKA_SECURITY_PROTOCOL` for a later `SASL_SSL`.
+Why: The image can ship before step 3c, and each display switches by setting its variables at cutover.
+Trade-off: `SASL_PLAINTEXT` authenticates without encrypting, so Kafka traffic stays readable on the network.
+Revisit if: The broker moves to `SASL_SSL`, which may need a CA setting too.
+
 ## D-008: Add `PROJECT_SERVICES` for health checks, and change the default ports
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Requested by the CCTV session with the owner's approval, for CCTV PR #62.

@@ -24,7 +24,7 @@ Partition selection and the message queue:
 python test_partitions.py
 ```
 
-Each check prints `PASS`. CI does not run this file yet. `assign_new_partitions` was also run against a private `cp-kafka` broker: reading every partition, `KAFKA_PARTITIONS`, two displays in one group, and a partition added while running. Never run such a test against a live broker.
+Each check prints `PASS`. CI does not run this file yet. `assign_new_partitions` was also run against a private `cp-kafka` broker: reading every partition, `KAFKA_PARTITIONS`, two displays in one group, and a partition added while running. The login was run against a private SCRAM broker too: the right password reads, and a wrong password or no login is refused. Never run such a test against a live broker.
 
 Settings:
 

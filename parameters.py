@@ -37,6 +37,16 @@ PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV
 CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
 
+# Kafka login: setting KAFKA_USERNAME turns on SASL, so a display can run this image before the broker requires it
+KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
+KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
+if KAFKA_USERNAME and not KAFKA_PASSWORD:
+    raise SystemExit("KAFKA_PASSWORD must be set when KAFKA_USERNAME is set")
+KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL") or ("SASL_PLAINTEXT" if KAFKA_USERNAME else "PLAINTEXT")
+KAFKA_SECURITY_CONF = {"security.protocol": KAFKA_SECURITY_PROTOCOL}
+if KAFKA_USERNAME:
+    KAFKA_SECURITY_CONF |= {"sasl.mechanism": "SCRAM-SHA-512", "sasl.username": KAFKA_USERNAME, "sasl.password": KAFKA_PASSWORD}
+
 # Kafka topic for messages
 CONFLUENT_KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "maingate_entry")
 

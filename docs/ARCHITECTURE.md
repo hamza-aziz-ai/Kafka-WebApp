@@ -133,7 +133,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts. This app keeps these itself and does not post them to the image server |
 | `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}` |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID, never an error, so an unknown ID cannot be told from a known one by shape |
-| Coming in D-036, step 3c | SASL/SCRAM with `KAFKA_USERNAME` and `KAFKA_PASSWORD` for the `<client>_display` user, with Read on its topics and groups only. `<topic>.display` already fits the required `<client>.` prefix. This app does not support it yet |
+| Kafka login, from D-036, step 3c | `SASL_PLAINTEXT` with `SCRAM-SHA-512` on port 9092, as the `<client>_display` user, with Read and Describe on topics `<client>.*` and Read on groups `<client>.*`. `<topic>.display` fits the `<client>.` prefix. This app turns it on when `KAFKA_USERNAME` is set. `SASL_SSL` comes later through `KAFKA_SECURITY_PROTOCOL` |
 
 **One screen per entry point by default.** The display reads every partition of its topic, so it shows all cameras at that point. `KAFKA_PARTITIONS` narrows it to chosen cameras, for one screen per camera.
 
@@ -142,7 +142,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Boundary | What crosses it | Control today |
 |---|---|---|
 | Network to port 9090 | Page, Socket.IO events | None: no auth, and `cors_allowed_origins="*"`. Anyone who can reach the port sees person IDs and faces |
-| Kafka to the consumer | Message strings | Trusted network only. Text is rendered with `textContent` |
+| Kafka to the consumer | Message strings | SASL login when `KAFKA_USERNAME` is set, without encryption. Text is rendered with `textContent` |
 | Image server to the consumer | JSON list of person IDs and images | Trusted network only. Rendered with `textContent` and a `data:` URL |
 | CDN to the browser | `socket.io.js` | None: no Subresource Integrity check |
 

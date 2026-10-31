@@ -6,7 +6,7 @@ This project has no customers yet. The owner is simulating real-world conditions
 
 ## Never
 
-- Never commit secrets, keys, tokens or `.env` contents. `SECRET_KEY` comes from the environment only.
+- Never commit secrets, keys, tokens or `.env` contents. `SECRET_KEY` and `KAFKA_PASSWORD` come from the environment only.
 - Never read or edit `.env` or other secrets files without asking.
 - Never run production, deploy or release commands, or touch a live Kafka topic or the DGX, without asking.
 - Never force push or rewrite history.
