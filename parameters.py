@@ -37,7 +37,8 @@ DISPLAY_LIST_SIZE = 4
 STATUS_THRESHOLD = 15
 
 # Image Server Address
-IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
+# Overridable because on a central host each client's image server has its own port; a fixed :20013 would show another client's faces
+IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{DGX_IP_ADDRESS}:20013/post_images")
 
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
