@@ -2,7 +2,7 @@ import os
 import re
 
 # Project Services
-DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "127.0.0.1")
+SERVER_IP_ADDRESS = os.getenv("IP_ADDRESS", "127.0.0.1")
 
 # Port that shows the host is reachable
 HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))
@@ -23,16 +23,16 @@ def _parse_services(value: str) -> list[tuple[str, int]]:
         match = re.fullmatch(r"(?:([A-Za-z0-9._-]+):)?([0-9]{1,5})", entry.strip())
         if not match or not 0 < int(match[2]) < 65536:
             raise SystemExit(f"PROJECT_SERVICES entries must be host:port or port, got {entry!r}")
-        services.append((match[1] or DGX_IP_ADDRESS, int(match[2])))
+        services.append((match[1] or SERVER_IP_ADDRESS, int(match[2])))
     return services
 
 # Comma-separated host:port or bare port entries (a bare port means IP_ADDRESS), for services not published on the host
 # Must stay a separate name from PROJECT_SERVICES_PORT: older images crash on host:port there, and they ignore this one
 PROJECT_SERVICES_ENV = os.getenv("PROJECT_SERVICES", "")
-PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV.strip() else [(DGX_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT]
+PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV.strip() else [(SERVER_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT]
 
 # Kafka IP and Port
-CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
+CONFLUENT_KAFKA_IP_ADDRESS = SERVER_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
 
 # Kafka login: setting KAFKA_USERNAME turns on SASL, so a display can run this image before the broker requires it
@@ -76,7 +76,7 @@ STATUS_THRESHOLD = 15
 
 # Image Server Address
 # Overridable because on a central host each client's image server has its own port; a fixed :20013 would show another client's faces
-IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{DGX_IP_ADDRESS}:20013/post_images")
+IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{SERVER_IP_ADDRESS}:20013/post_images")
 
 # Seconds a camera's SUCCESS text stays in the status strip
 CAMERA_SUCCESS_SECONDS = 5

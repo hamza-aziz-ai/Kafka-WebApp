@@ -110,7 +110,7 @@ def run_parameters(**env):
 
 def check_default_address():
     env = {key: value for key, value in os.environ.items() if key != "IP_ADDRESS"}
-    code = "import parameters as p; print(p.DGX_IP_ADDRESS)"
+    code = "import parameters as p; print(p.SERVER_IP_ADDRESS)"
     result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
     assert result.stdout.strip() == "127.0.0.1", result
 

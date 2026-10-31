@@ -8,7 +8,7 @@ This project has no customers yet. The owner is simulating real-world conditions
 
 - Never commit secrets, keys, tokens or `.env` contents. `SECRET_KEY` and `KAFKA_PASSWORD` come from the environment only.
 - Never read or edit `.env` or other secrets files without asking.
-- Never run production, deploy or release commands, or touch a live Kafka topic or the DGX, without asking.
+- Never run production, deploy or release commands, or touch a live Kafka topic or the CCTV server, without asking.
 - Never force push or rewrite history.
 - Never disable or weaken CI checks, gitleaks or the image smoke test.
 - Never write person IDs or face images to logs or to any new storage. This repo only passes them to the display.
@@ -28,7 +28,7 @@ This project has no customers yet. The owner is simulating real-world conditions
 - Changes to `Dockerfile`, `.dockerignore` or `.github/workflows/`.
 - New network calls or external hosts.
 - Adding or changing auth, CORS or the port the app listens on.
-- Changes to the default ports, topic or addresses in `parameters.py`, because deployed Raspberry Pis and the DGX services depend on them.
+- Changes to the default ports, topic or addresses in `parameters.py`, because deployed displays and the CCTV services depend on them.
 - Deleting files.
 
 ## Coupled code

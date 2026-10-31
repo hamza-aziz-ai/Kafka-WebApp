@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-012: Rename `DGX_IP_ADDRESS` to `SERVER_IP_ADDRESS`
+
+Date: 2026-10-31. Model: Claude Opus 5.5. Chosen by the owner.
+Context: The name tied the code to one kind of hardware, and the repo should stay general.
+Options: 1) `SERVER_IP_ADDRESS` 2) keep the name.
+Chosen: 1. It is an internal name only, so the `IP_ADDRESS` environment variable stays the same and no deployment changes.
+Why: Any machine can run these services.
+Trade-off: None for deployments. The owner also decided not to rewrite git history, so old commits keep the old name.
+Revisit if: Never expected.
+
 ## D-011: Default `IP_ADDRESS` to `127.0.0.1`
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Chosen by the owner.

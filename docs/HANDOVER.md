@@ -27,7 +27,7 @@ Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `socket.io.js` loads from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 - The app runs on the Flask development server.
 - There are no automated tests of app behaviour. CI runs lint, gitleaks, an image build and an import smoke test only.
-- Old commits and published images `v0.1.0` to `v0.1.2` still hold company names, logos and a work email. Removing them needs a history rewrite, which is the owner's decision.
+- Old commits and published images `v0.1.0` to `v0.1.2` still hold company names, logos and a work email. The owner decided not to rewrite history, so these stay.
 
 Assumptions:
 - Unverified: the 5 second timeout. The CCTV session expects tens of milliseconds but has not measured it.

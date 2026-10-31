@@ -43,7 +43,7 @@ flowchart TD
         D["`Watchdog thread`"]:::code
         L[("`Local log files`")]:::code
     end
-    subgraph dgx["`CCTV host (the DGX), IP_ADDRESS`"]
+    subgraph server["`CCTV server, IP_ADDRESS`"]
         Q[("`Kafka 9092`")]:::outside
         I["`Display-image server 20013`"]:::outside
         S["`Other services: InsightFace, Milvus, reporting API`"]:::outside

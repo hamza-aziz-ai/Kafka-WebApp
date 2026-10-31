@@ -49,7 +49,7 @@ The [`parameters.py`](../parameters.py) file contains important information to s
 
 ```python
 # Project Services
-DGX_IP_ADDRESS = <IP Address of DGX>    # e.g., "10.0.0.5"
+SERVER_IP_ADDRESS = <IP address of the server>    # e.g., "10.0.0.5"
 
 PROJECT_SERVICES_PORT = [
     6385, 19000, 19001,     # InsightFace
@@ -63,7 +63,7 @@ PROJECT_SERVICES_PORT = [
 ]
 
 # Kafka IP and Port
-CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
+CONFLUENT_KAFKA_IP_ADDRESS = SERVER_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
 
 # Kafka topic for messages
@@ -76,7 +76,7 @@ DISPLAY_LIST_SIZE = 4
 STATUS_THRESHOLD = 15
 
 # Image Server Address
-IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
+IMAGE_SERVER_ADDRESS = f"http://{SERVER_IP_ADDRESS}:20013/post_images"
 
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
