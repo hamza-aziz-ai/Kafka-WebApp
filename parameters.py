@@ -27,6 +27,9 @@ CONFLUENT_KAFKA_PORT = 9092
 CONFLUENT_KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "maingate_entry")
 CONFLUENT_KAFKA_PARTITION = 0
 
+# The group lives under the topic's client prefix, so a client's Kafka permissions cover it
+CONFLUENT_KAFKA_GROUP = f"{CONFLUENT_KAFKA_TOPIC}.display"
+
 # Number of names to be displayed at once
 DISPLAY_LIST_SIZE = 4
 
@@ -34,7 +37,8 @@ DISPLAY_LIST_SIZE = 4
 STATUS_THRESHOLD = 15
 
 # Image Server Address
-IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
+# Overridable because on a central host each client's image server has its own port; a fixed :20013 would show another client's faces
+IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{DGX_IP_ADDRESS}:20013/post_images")
 
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
