@@ -9,9 +9,12 @@ Done:
 - Released `v0.3.0` (`c1f4d7f`): PR #10 merged on its first CI run. It reads every camera with `KAFKA_PARTITIONS` to narrow it, adds the per-camera status strip, `PROJECT_SERVICES` with new default ports, SASL login, the light theme redesign with no logos, `IP_ADDRESS` defaulting to `127.0.0.1`, and the `SERVER_IP_ADDRESS` rename.
 - Sent the CCTV session the `v0.3.0` tag to pin in its compose file. The owner deleted the old `feat/display-all-partitions` branch.
 - The merge plan, the rehearsal script and the test tools are kept outside the repo, in `Kafka-WebApp-merge-plan` beside it.
+- New owner rule: Markdown-only chores go straight to `main` with a `docs:` subject and `[skip ci]`, which costs no Actions minutes. Everything else keeps a PR, and a PR's commits never carry `[skip ci]`, because automerge would stall.
+- New owner rule: every image is tagged, past, present and future, and nobody handles `<none>` by hand.
 
 In progress:
-- The live display in the CCTV stack runs `v0.1.2` until CCTV pins `v0.3.0`. Until then it shows the first camera only.
+- The CCTV stack now runs `v0.3.0`, and its container is healthy. The CCTV session has not yet reported what the display shows, so `ROLLBACK.md` stays on `v0.1.2`.
+- The CCTV session is automating removal of the `<none>` digest rows after each pull, including `kafka-webapp`, whose row returns on the next digest pull. Not confirmed until it survives a real deploy. Only remove a digest name while a running container uses the image: with no container, `docker rmi` deletes the whole image.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.
@@ -29,7 +32,7 @@ Assumptions:
 - Verified: the Kafka and `/post_images` contract, by the CCTV session against its code on 2026-10-31.
 
 Next:
-- Once CCTV runs `v0.3.0`: check it live, then set `ROLLBACK.md`'s last known good release to `v0.3.0`.
+- Get the CCTV session's report of what the live display shows on `v0.3.0`, then set `ROLLBACK.md`'s last known good release to `v0.3.0`.
 - Add `python test_partitions.py` to CI, which needs the owner's approval.
 - Run the simulation in `FAILURE.md` and record real results and recovery times, including the 5 second timeout and the light theme's contrast at a gate.
 - Owner reviews `CONSTRAINTS.md`.
