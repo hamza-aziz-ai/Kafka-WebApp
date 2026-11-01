@@ -16,15 +16,23 @@ CI does not start the app or test its behaviour.
 
 ## Local checks
 
-Run from the repo root with the project's dependencies installed (`pipenv install`). Point `IP_ADDRESS` at `127.0.0.1` so that a check never touches a real host. Importing `app` starts its threads, so end with `os._exit`.
+Run from the repo root with the project's dependencies installed (`pipenv install`). Set `IP_ADDRESS` to `192.0.2.1`, a reserved address that reaches nothing, so that a check cannot touch a real host. Do not use `127.0.0.1`, because a CCTV stack may be running on the same machine. Importing `app` starts its threads, so end with `os._exit`.
+
+Partition selection and the message queue:
+
+```bash
+python test_partitions.py
+```
+
+Each check prints `PASS`. CI does not run this file yet. `assign_new_partitions` was also run against a private `cp-kafka` broker: reading every partition, `KAFKA_PARTITIONS`, two displays in one group, and a partition added while running. The login was run against a private SCRAM broker too: the right password reads, and a wrong password or no login is refused. Never run such a test against a live broker.
 
 Settings:
 
 ```bash
-IP_ADDRESS=127.0.0.1 KAFKA_TOPIC=acme.maingate_entry python -c "import os, app; assert app.kafka_conf['group.id'] == 'acme.maingate_entry.display'; print('PASS', flush=True); os._exit(0)"
-IP_ADDRESS=127.0.0.1 python -c "import os, app; assert app.kafka_conf['group.id'] == 'maingate_entry.display'; print('PASS', flush=True); os._exit(0)"
-IP_ADDRESS=127.0.0.1 python -c "import os, app; assert app.IMAGE_SERVER_ADDRESS == 'http://127.0.0.1:20013/post_images'; print('PASS', flush=True); os._exit(0)"
-IP_ADDRESS=127.0.0.1 IMAGE_SERVER_ADDRESS=http://display-image-server:20013/post_images python -c "import os, app; assert app.IMAGE_SERVER_ADDRESS == 'http://display-image-server:20013/post_images'; print('PASS', flush=True); os._exit(0)"
+IP_ADDRESS=192.0.2.1 KAFKA_TOPIC=acme.maingate_entry python -c "import os, app; assert app.kafka_conf['group.id'] == 'acme.maingate_entry.display'; print('PASS', flush=True); os._exit(0)"
+IP_ADDRESS=192.0.2.1 python -c "import os, app; assert app.kafka_conf['group.id'] == 'maingate_entry.display'; print('PASS', flush=True); os._exit(0)"
+IP_ADDRESS=192.0.2.1 python -c "import os, app; assert app.IMAGE_SERVER_ADDRESS == 'http://192.0.2.1:20013/post_images'; print('PASS', flush=True); os._exit(0)"
+IP_ADDRESS=192.0.2.1 IMAGE_SERVER_ADDRESS=http://display-image-server:20013/post_images python -c "import os, app; assert app.IMAGE_SERVER_ADDRESS == 'http://display-image-server:20013/post_images'; print('PASS', flush=True); os._exit(0)"
 ```
 
 Each prints `PASS`.
@@ -58,9 +66,10 @@ It should return after about 5 seconds and log `Read timed out`.
 There is no automated end-to-end test, so walk this by hand against a CCTV host before a release that changes behaviour:
 
 1. Start the app with `IP_ADDRESS` set, and open `http://<host>:9090`.
-2. Stand in front of the first camera at the point (partition 0). Your person ID and face appear, and they clear after about 15 seconds of no activity.
-3. Stop one service on the CCTV host. A red `Temporarily Down` message appears.
-4. Start it again. A green `Getting Started` message shows for 2 minutes, and recognition then resumes.
-5. Unplug the network. A red `Network Issue` message appears. Reconnect, and it recovers.
+2. Stand in front of each camera at the point in turn. Your person ID and face appear for each, and they clear after about 15 seconds of no activity.
+3. Block one camera. An amber chip for it appears under the header and stays, while the other cameras' cards keep working. Restore it, and a green chip shows for 5 seconds.
+4. Stop one service on the CCTV host. A red `Temporarily Down` panel appears.
+5. Start it again. A green `Getting Started` panel with a progress bar shows for 2 minutes, and recognition then resumes.
+6. Unplug the network. A red `Network Issue` panel appears. Reconnect, and it recovers.
 
 Use [FAILURE.md](FAILURE.md) for the wider simulation.

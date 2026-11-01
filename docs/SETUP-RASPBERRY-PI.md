@@ -24,9 +24,7 @@ Additionally, you can walk through the following link to do your custom configur
 ```tree
 Kafka-WebApp
    ├── static/
-   │   └── img/
-   |       ├── camera-logo.png
-   |       └── nvidia-logo.png
+   │   └── fonts/
    ├── templates/
    │   └── index.html
    ├── app.py
@@ -51,7 +49,7 @@ The [`parameters.py`](../parameters.py) file contains important information to s
 
 ```python
 # Project Services
-DGX_IP_ADDRESS = <IP Address of DGX>    # e.g., "192.168.12.89"
+SERVER_IP_ADDRESS = <IP address of the server>    # e.g., "10.0.0.5"
 
 PROJECT_SERVICES_PORT = [
     6385, 19000, 19001,     # InsightFace
@@ -65,7 +63,7 @@ PROJECT_SERVICES_PORT = [
 ]
 
 # Kafka IP and Port
-CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
+CONFLUENT_KAFKA_IP_ADDRESS = SERVER_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
 
 # Kafka topic for messages
@@ -78,7 +76,7 @@ DISPLAY_LIST_SIZE = 4
 STATUS_THRESHOLD = 15
 
 # Image Server Address
-IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
+IMAGE_SERVER_ADDRESS = f"http://{SERVER_IP_ADDRESS}:20013/post_images"
 
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
@@ -125,6 +123,9 @@ cd /home/raspberry/Kafka-WebApp
 
 # Activate the virtual environment
 source venv/bin/activate
+
+# The server that runs Kafka and the display image server. Required: the default only suits running on that server
+export IP_ADDRESS=<server-ip>
 
 # Start the application at a specified port and open it to all incoming networks
 python3 -m flask --app app.py run --host 0.0.0.0 --port 9090

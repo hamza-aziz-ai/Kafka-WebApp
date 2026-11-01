@@ -1,31 +1,69 @@
 import os
+import re
 
 # Project Services
-DGX_IP_ADDRESS = os.getenv("IP_ADDRESS", "192.168.12.1")
+SERVER_IP_ADDRESS = os.getenv("IP_ADDRESS", "127.0.0.1")
 
 # Port that shows the host is reachable
 HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))
 
 DEFAULT_PROJECT_SERVICES_PORT = [
-    6385, 19000, 19001,     # InsightFace
+    6385, 19000,            # InsightFace
     19530,                  # Milvus Vector Database
     9092,                   # Kafka Broker
-    6381,                   # Redis Database
-    20001,                  # Database-Controller
-    20012,                  # Kafka-Message-Controller
-    20013,                  # Display-Image-Server
-    6386, 6970, 6971        # Face Liveness Detection
+    9090,                   # Reporting API, proof that the app stack is up
+    20013                   # Display-Image-Server
 ]
 # Comma-separated override, for a host that does not run every service above
 PROJECT_SERVICES_PORT = [int(p) for p in os.getenv("PROJECT_SERVICES_PORT", "").split(",") if p] or DEFAULT_PROJECT_SERVICES_PORT
 
+def _parse_services(value: str) -> list[tuple[str, int]]:
+    services = []
+    for entry in value.split(","):
+        match = re.fullmatch(r"(?:([A-Za-z0-9._-]+):)?([0-9]{1,5})", entry.strip())
+        if not match or not 0 < int(match[2]) < 65536:
+            raise SystemExit(f"PROJECT_SERVICES entries must be host:port or port, got {entry!r}")
+        services.append((match[1] or SERVER_IP_ADDRESS, int(match[2])))
+    return services
+
+# Comma-separated host:port or bare port entries (a bare port means IP_ADDRESS), for services not published on the host
+# Must stay a separate name from PROJECT_SERVICES_PORT: older images crash on host:port there, and they ignore this one
+PROJECT_SERVICES_ENV = os.getenv("PROJECT_SERVICES", "")
+PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV.strip() else [(SERVER_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT]
+
 # Kafka IP and Port
-CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
+CONFLUENT_KAFKA_IP_ADDRESS = SERVER_IP_ADDRESS
 CONFLUENT_KAFKA_PORT = 9092
+
+# Kafka login: setting KAFKA_USERNAME turns on SASL, so a display can run this image before the broker requires it
+KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
+KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
+if KAFKA_USERNAME and not KAFKA_PASSWORD:
+    raise SystemExit("KAFKA_PASSWORD must be set when KAFKA_USERNAME is set")
+KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL") or ("SASL_PLAINTEXT" if KAFKA_USERNAME else "PLAINTEXT")
+KAFKA_SECURITY_CONF = {"security.protocol": KAFKA_SECURITY_PROTOCOL}
+if KAFKA_USERNAME:
+    KAFKA_SECURITY_CONF |= {"sasl.mechanism": "SCRAM-SHA-512", "sasl.username": KAFKA_USERNAME, "sasl.password": KAFKA_PASSWORD}
 
 # Kafka topic for messages
 CONFLUENT_KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "maingate_entry")
-CONFLUENT_KAFKA_PARTITION = 0
+
+def _parse_partitions(value: str) -> list[int]:
+    if not value.strip():
+        return []
+    entries = [entry.strip() for entry in value.split(",")]
+    if not all(entry.isascii() and entry.isdigit() for entry in entries):
+        raise SystemExit(f"KAFKA_PARTITIONS must be comma-separated partition numbers (camera number - 1), got {value!r}")
+    return sorted({int(entry) for entry in entries})
+
+# Partitions to show, for one screen per camera (partition = camera number - 1). Empty means every partition of the topic
+KAFKA_PARTITIONS = _parse_partitions(os.getenv("KAFKA_PARTITIONS", ""))
+
+# Seconds between checks for partitions added with a new camera
+KAFKA_PARTITION_CHECK_INTERVAL = 60
+
+# Shown on the screen: the topic without its client prefix, so acme.maingate_entry reads Maingate Entry
+DISPLAY_LOCATION = CONFLUENT_KAFKA_TOPIC.rpartition(".")[2].replace("_", " ").title()
 
 # The group lives under the topic's client prefix, so a client's Kafka permissions cover it
 CONFLUENT_KAFKA_GROUP = f"{CONFLUENT_KAFKA_TOPIC}.display"
@@ -38,7 +76,10 @@ STATUS_THRESHOLD = 15
 
 # Image Server Address
 # Overridable because on a central host each client's image server has its own port; a fixed :20013 would show another client's faces
-IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{DGX_IP_ADDRESS}:20013/post_images")
+IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{SERVER_IP_ADDRESS}:20013/post_images")
+
+# Seconds a camera's SUCCESS text stays in the status strip
+CAMERA_SUCCESS_SECONDS = 5
 
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10

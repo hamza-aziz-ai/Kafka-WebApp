@@ -11,31 +11,28 @@ Done:
 - Confirmed the display contract with the CCTV session and recorded it in `ARCHITECTURE.md`.
 
 In progress:
-- Open PRs, all waiting for CI. GitHub Actions is blocked until the quota resets on 2026-11-01 at 00:00 UTC (05:30 IST). The last release is `v0.1.2`. Green CI merges each PR and deletes its branch automatically.
-- PR #5: `group.id` becomes `<topic>.display`, and `IMAGE_SERVER_ADDRESS` can be set from the environment (CCTV decision D-036, steps 1 and 2).
-- PR #6: removes the `client_log` handler. Before the fix, an anonymous client could write to `client_console.log`.
-- PR #7: 5 second timeout on image server calls. Before the fix, a hung server blocked the consumer thread.
-- PR #8: removes the company logo, so the repo stays general.
-- The docs PR. The detailed docs describe the code with #5, #6 and #7 merged.
+- Released `v0.2.0` on 2026-11-01 (`0c6df18`): PRs #4 to #9 merged on their first CI run. It holds the consumer group per topic, the `IMAGE_SERVER_ADDRESS` override, the `client_log` removal, the image server timeout, the company logo removal and these docs.
+- Branch `feat/display-all-cameras`, rebuilt on `v0.2.0` from `feat/display-all-partitions`: reads every camera with `KAFKA_PARTITIONS` to narrow it, the per-camera status strip, `PROJECT_SERVICES` with new default ports, SASL login, the light theme redesign with no logos, `IP_ADDRESS` defaulting to `127.0.0.1`, and the `SERVER_IP_ADDRESS` rename. Green CI merges it and cuts `v0.3.0`.
+- The live display in the CCTV stack runs `v0.1.2` until CCTV pins a newer release.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
-- **Only one camera reaches the display.** The app reads partition 0, and the CCTV system sends each camera to partition camera number - 1. The CCTV session thinks every camera should feed one display and is confirming with the owner. If so, assign all partitions of the topic.
-- SASL/SCRAM is coming in CCTV decision D-036, step 3c (`KAFKA_USERNAME`, `KAFKA_PASSWORD`). This app has no support yet, so it will lose Kafka access when that lands.
 - `cors_allowed_origins="*"` lets any origin connect.
 - Anyone who can reach port 9090 can see the person IDs and face images on the display, because the page and the socket have no auth.
 - Kafka consumers are dropped with `kafka_consumer = None` and never closed, on poll failure and on every outage path.
-- Every consumer loop opens up to 13 TCP connections to the DGX before it polls for one message, which is likely the first throughput limit.
+- Every consumer loop opens up to 7 TCP connections with the default list before it polls for one message, which is likely the first throughput limit.
 - `socket.io.js` loads from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 - The app runs on the Flask development server.
 - There are no automated tests of app behaviour. CI runs lint, gitleaks, an image build and an import smoke test only.
-- Old commits and published images `v0.1.0` to `v0.1.2` still hold company names, logos and a work email. Removing them needs a history rewrite, which is the owner's decision.
+- Old commits and published images `v0.1.0` to `v0.1.2` still hold company names, logos and a work email. The owner decided not to rewrite history, so these stay.
 
 Assumptions:
 - Unverified: the 5 second timeout. The CCTV session expects tens of milliseconds but has not measured it.
+- Verified by the CCTV session against `src/multicam_stream_producer.py`: `ERROR` is re-sent every `IP_CAM_REINIT_WAIT_DURATION` (30 seconds) while a camera is down (lines 314-317), and on every evaluation while it stays dark (around line 226). `SUCCESS` is sent once per recovery. So emptying `camera_status` on a consumer rebuild is safe.
 - Verified: the Kafka and `/post_images` contract, by the CCTV session against its code on 2026-10-31.
 
 Next:
-- After 05:30 IST on 2026-11-01, rerun CI on PRs #5, #6 and #7 (`gh run rerun 41190876365`, `41192493079`, `41192556848`) and on PR #8 and the docs PR. Marking a PR ready does not start CI, and `automerge.yml` only sweeps when a CI run finishes. PR #4 is not a draft and will automerge if its rerun passes.
+- After the all-cameras PR is released: send the CCTV session the tag to pin, and set `ROLLBACK.md`'s last known good release once it proves itself on a display. Then delete the old `feat/display-all-partitions` branch.
+- Add `python test_partitions.py` to CI, which needs the owner's approval.
 - Run the simulation in `FAILURE.md` and record real results and recovery times.
 - Owner reviews `CONSTRAINTS.md`.
 

@@ -6,8 +6,8 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 
 ## `message_queue`
 
-- **Shape:** a Python list of strings, newest first. Each is a plain person ID or an `ERROR` or `SUCCESS` control message.
-- **Size:** at most `DISPLAY_LIST_SIZE` (4), or a single control message.
+- **Shape:** a Python list of strings, newest first. Each is a plain person ID.
+- **Size:** at most `DISPLAY_LIST_SIZE` (4).
 - **Written by:** the consumer thread only.
 - **Read by:** the consumer thread only, to build the POST body.
 - **Why a list:** at 4 items, a linear scan for duplicates and `insert(0, ...)` cost nothing, and order is the point. Membership lookup is O(n) and insert at the front is O(n), which only matters if `DISPLAY_LIST_SIZE` grows a lot.
@@ -15,12 +15,30 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 
 ## `messages_to_display`
 
-- **Shape:** the JSON body from the image server, a list in request order of one-key objects: `{"<id>": "<base64 jpg>"}`, `{"ERROR": "<text>"}` or `{"SUCCESS": "<text>"}`.
+- **Shape:** the JSON body from the image server, a list in request order of one-key objects: `{"<id>": "<base64 jpg>"}`.
 - **Size:** at most 4 rows, each with a base64 image. Image size is set by the image server.
 - **Written by:** the consumer thread. It replaces the value on a 200, and clears it on an outage or after 15 idle seconds.
-- **Read by:** the Socket.IO handlers, once every 100 ms per open page, and `index` at page load.
+- **Read by:** the Socket.IO handlers, once every 100 ms per open page.
 - **Why whole-list replacement:** the browser redraws everything, so there is no diffing to get wrong. The cost is that every poll resends every image, about 10 times a second per screen.
 - **Concurrency:** there is no lock. A replacement swaps the reference, so a reader sees the old or new list, never a mix. The `clear()` paths mutate in place, and a reader can at worst see an empty list a moment early.
+
+## `camera_status`
+
+- **Shape:** a dict from camera to `{level, text, expires}`. `expires` is empty for an `ERROR`, and 5 seconds ahead for a `SUCCESS`.
+- **Size:** one entry per camera at the entry point.
+- **Written by:** the consumer thread, in `update_camera_status`. It is emptied when a new consumer is created.
+- **Read by:** the Socket.IO handlers, once every 100 ms per open page, through `current_camera_status`, which skips expired entries.
+- **Why a dict:** the latest state per camera is the whole need. A new message for a camera replaces the old one, so a repeated `ERROR` does not add lines.
+- **Concurrency:** no lock. The reader copies the items with `list()` before sorting, so a write during a read cannot raise.
+- **Trade-off:** it is not persisted. A display restart starts empty and refills from the producer's repeated `ERROR` messages. Each repeat only overwrites one entry and makes no network call, so frequent re-sends cost little here.
+
+## `assigned_partitions`
+
+- **Shape:** a Python set of partition numbers.
+- **Size:** one per camera at the entry point.
+- **Written by:** the consumer thread, in `assign_new_partitions`. It is cleared when a new consumer is created.
+- **Read by:** the consumer thread only.
+- **Why a set:** the only question is which partitions are new, and that is a set difference.
 
 ## Consumer group offsets
 

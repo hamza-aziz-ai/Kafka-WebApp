@@ -12,16 +12,20 @@ from custom_logging import feedback_client_logger
 from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     CONFLUENT_KAFKA_PORT, \
     CONFLUENT_KAFKA_TOPIC, \
-    CONFLUENT_KAFKA_PARTITION, \
+    KAFKA_PARTITIONS, \
+    KAFKA_PARTITION_CHECK_INTERVAL, \
+    CAMERA_SUCCESS_SECONDS, \
+    DISPLAY_LOCATION, \
+    KAFKA_SECURITY_CONF, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
     STATUS_THRESHOLD, \
-    DGX_IP_ADDRESS, \
+    SERVER_IP_ADDRESS, \
     HOST_CHECK_PORT, \
     NETWORK_FAIL_CHECK, \
     IMAGE_SERVER_TIMEOUT, \
-    PROJECT_SERVICES_PORT
+    PROJECT_SERVICES
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
@@ -34,7 +38,8 @@ kafka_conf = {
     'enable.auto.commit': True,
     'session.timeout.ms': 6000,
     'heartbeat.interval.ms': 2000,
-    'max.poll.interval.ms': 300000
+    'max.poll.interval.ms': 300000,
+    **KAFKA_SECURITY_CONF
 }
 
 message_queue = []
@@ -46,6 +51,10 @@ successful_reconnection_message_sent = not connection_failure_message_sent
 project_restart_message_sent = not project_services_down_message_sent
 
 kafka_consumer = None
+assigned_partitions = set()
+camera_status = {}
+
+CONTROL_PREFIXES = ("ERROR ", "SUCCESS ")
 
 def ping_server(ip: str, port: int):
     try:
@@ -57,7 +66,7 @@ def ping_server(ip: str, port: int):
         return False
 
 def ping_project_services() -> bool:
-    return all(ping_server(DGX_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT)
+    return all(ping_server(host, port) for host, port in PROJECT_SERVICES)
 
 def post_message_queue_and_get_images(data):
     global messages_to_display
@@ -70,6 +79,43 @@ def post_message_queue_and_get_images(data):
     except Exception as e:
         feedback_client_logger.exception(f"Exception in image post: {e}")
 
+def assign_new_partitions(consumer):
+    # Keep assign(), not subscribe(): displays share a group, and subscribe() would split the partitions between them
+    topic = consumer.list_topics(CONFLUENT_KAFKA_TOPIC, timeout=5).topics[CONFLUENT_KAFKA_TOPIC]
+    if topic.error:
+        feedback_client_logger.error(f"Kafka topic {CONFLUENT_KAFKA_TOPIC}: {topic.error}")
+        return
+
+    available = set(topic.partitions)
+    wanted = set(KAFKA_PARTITIONS) or available
+    if wanted - available:
+        feedback_client_logger.warning(f"Partitions {sorted(wanted - available)} are not in {CONFLUENT_KAFKA_TOPIC} yet")
+
+    new_partitions = sorted((wanted & available) - assigned_partitions)
+    if new_partitions:
+        consumer.incremental_assign([TopicPartition(CONFLUENT_KAFKA_TOPIC, partition, OFFSET_END) for partition in new_partitions])
+        assigned_partitions.update(new_partitions)
+        feedback_client_logger.info(f"Reading {CONFLUENT_KAFKA_TOPIC} partitions {sorted(assigned_partitions)}")
+
+def update_message_queue(message):
+    if message not in message_queue:
+        if len(message_queue) >= DISPLAY_LIST_SIZE:
+            message_queue.pop()
+        message_queue.insert(0, message)
+
+def update_camera_status(message):
+    # Format: ERROR <camera>: <text>. Kept apart from the rows, so a camera error stays until cleared and hides no person
+    level, _, rest = message.partition(" ")
+    camera, _, text = rest.partition(": ")
+    expires = None if level == "ERROR" else time.time() + CAMERA_SUCCESS_SECONDS
+    camera_status[camera] = {"level": level, "text": text or rest, "expires": expires}
+
+def current_camera_status():
+    now = time.time()
+    return [{"level": status["level"], "text": status["text"]}
+            for _, status in sorted(list(camera_status.items()), key=lambda item: item[0])
+            if status["expires"] is None or status["expires"] > now]
+
 def _consume_messages():
     global message_queue, last_update_time, messages_to_display
     global connection_failure_message_sent, project_services_down_message_sent
@@ -77,17 +123,18 @@ def _consume_messages():
 
     server_ping_fail = 0
     services_ping_fail = 0
+    next_partition_check = 0
 
     while True:
-        is_dgx_reachable = ping_server(DGX_IP_ADDRESS, HOST_CHECK_PORT)
+        is_server_reachable = ping_server(SERVER_IP_ADDRESS, HOST_CHECK_PORT)
         are_services_running = ping_project_services()
 
-        if is_dgx_reachable:
+        if is_server_reachable:
             server_ping_fail = 0
             if not successful_reconnection_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
-                socketio.emit('new_message', {'message': [{'SUCCESS': "🛜 Network Reconnection Successful 🛜"}]})
+                socketio.emit('new_message', {'message': [{'SUCCESS': "Network Reconnection Successful"}]})
                 successful_reconnection_message_sent = True
                 connection_failure_message_sent = False
                 feedback_client_logger.info("Network Reconnection Successful")
@@ -97,7 +144,7 @@ def _consume_messages():
                 if not project_restart_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'SUCCESS': "✅ Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes ✅"}]})
+                    socketio.emit('new_message', {'message': [{'SUCCESS': "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes"}]})
                     feedback_client_logger.info("Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes")
                     time.sleep(2 * 60)
 
@@ -110,14 +157,24 @@ def _consume_messages():
                 if kafka_consumer is None:
                     try:
                         kafka_consumer = Consumer(kafka_conf)
-                        topic_partition = TopicPartition(CONFLUENT_KAFKA_TOPIC, CONFLUENT_KAFKA_PARTITION, OFFSET_END)
-                        kafka_consumer.assign([topic_partition])
+                        assigned_partitions.clear()
+                        # A new consumer starts at OFFSET_END and may have missed a SUCCESS; the producer re-sends ERROR while it lasts
+                        camera_status.clear()
+                        next_partition_check = 0
                         feedback_client_logger.info("Created a fresh Kafka consumer")
                     except Exception as e:
                         feedback_client_logger.exception("Failed to initialize Kafka Consumer")
                         kafka_consumer = None
                         time.sleep(5)
                         continue
+
+                if time.time() >= next_partition_check:
+                    try:
+                        assign_new_partitions(kafka_consumer)
+                        next_partition_check = time.time() + KAFKA_PARTITION_CHECK_INTERVAL
+                    except Exception as e:
+                        feedback_client_logger.exception("Kafka partition check failed")
+                        next_partition_check = time.time() + 5
 
                 try:
                     message_from_kafka = kafka_consumer.poll(0.2)
@@ -140,20 +197,16 @@ def _consume_messages():
                         # timestamp = datetime.fromtimestamp(timestamp_milliseconds / 1000.0).strftime("%d-%m-%Y %I:%M:%S.%f %p")
                         # feedback_client_logger.debug(f"[KAFKA] Key = {key}, Message = {decoded_kafka_message}, Timestamp = {timestamp}")
 
-                        if decoded_kafka_message.startswith(("ERROR", "SUCCESS")):
-                            message_queue = []
-                            message_queue.insert(0, decoded_kafka_message)
+                        if decoded_kafka_message.startswith(CONTROL_PREFIXES):
+                            update_camera_status(decoded_kafka_message)
                         else:
-                            if decoded_kafka_message not in message_queue:
-                                if len(message_queue) >= DISPLAY_LIST_SIZE:
-                                    message_queue.pop()
-                                message_queue.insert(0, decoded_kafka_message)
+                            update_message_queue(decoded_kafka_message)
 
-                        # print(message_queue)
-                        data = {"messages": message_queue}
-                        post_message_queue_and_get_images(data)
-                        # message_queue.clear()
-                        last_update_time = time.time()
+                            # print(message_queue)
+                            data = {"messages": message_queue}
+                            post_message_queue_and_get_images(data)
+                            # message_queue.clear()
+                            last_update_time = time.time()
                     except Exception as e:
                         feedback_client_logger.exception("Error processing Kafka message")
             else:
@@ -161,7 +214,7 @@ def _consume_messages():
                 if services_ping_fail >= NETWORK_FAIL_CHECK and not project_services_down_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'ERROR': "⚠️ Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue ⚠️"}]})
+                    socketio.emit('new_message', {'message': [{'ERROR': "Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue"}]})
                     project_services_down_message_sent = True
                     project_restart_message_sent = False
                     feedback_client_logger.error("Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue")
@@ -172,7 +225,7 @@ def _consume_messages():
             if server_ping_fail >= NETWORK_FAIL_CHECK and not connection_failure_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
-                socketio.emit('new_message', {'message': [{'ERROR': "⚠️ Network Issue: Unable to Connect to the Server ⚠️"}]})
+                socketio.emit('new_message', {'message': [{'ERROR': "Network Issue: Unable to Connect to the Server"}]})
                 connection_failure_message_sent = True
                 successful_reconnection_message_sent = False
                 project_services_down_message_sent = False
@@ -213,15 +266,15 @@ watchdog_thread.start()
 
 @socketio.on('connect')
 def handle_connect():
-    emit('new_message', {'message': messages_to_display})
+    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
 
 @socketio.on('check_updates')
 def handle_check_updates():
-    emit('new_message', {'message': messages_to_display})
+    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
 
 @app.route('/')
 def index():
-    return render_template('index.html', message=messages_to_display)
+    return render_template('index.html', location=DISPLAY_LOCATION)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9090)

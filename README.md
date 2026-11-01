@@ -14,14 +14,19 @@ Then open `http://<host>:9090`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `IP_ADDRESS` | `192.168.12.1` | Server that runs Kafka and the display image server |
+| `IP_ADDRESS` | `127.0.0.1` | Server that runs Kafka and the display image server. The default only suits running directly on that server: in a container `127.0.0.1` is the container itself, so always set this with Docker, and on a Raspberry Pi |
 | `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
+| `KAFKA_PARTITIONS` | every partition of the topic | Comma-separated partitions to show, for one screen per camera. Partition = camera number - 1, so `0,3` shows cameras 1 and 4. Anything but whole numbers stops the app at startup |
 | `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
+| `KAFKA_USERNAME` | not set | Kafka login. Setting it turns on SASL with `SCRAM-SHA-512`. Without it the app connects with no login |
+| `KAFKA_PASSWORD` | not set | Password for `KAFKA_USERNAME`, required with it. Pass it as a secret, and never commit it |
+| `KAFKA_SECURITY_PROTOCOL` | `SASL_PLAINTEXT` with a username, otherwise `PLAINTEXT` | Kafka security protocol. `SASL_PLAINTEXT` logs in but does not encrypt, so it is for a trusted network |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
-| `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports that must answer before consuming starts |
+| `PROJECT_SERVICES` | not set | Comma-separated `host:port` or bare port entries that must answer before consuming starts. A bare port means `IP_ADDRESS`. Use it for services not published on the host, such as `9092,display-image-server:20013`, or to add ports, such as a host running face liveness detection or a second InsightFace container (19001). A malformed entry stops the app at startup |
+| `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports on `IP_ADDRESS` to check when `PROJECT_SERVICES` is not set |
 | `SECRET_KEY` | random at each start | Flask session key |
 
-To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md).
+To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md). A Pi must set `IP_ADDRESS`.
 
 PR titles must be Conventional Commits: `feat:` gives a minor release, `fix:`/`perf:` a patch, and `type!:` a major.
 
@@ -49,13 +54,13 @@ flowchart TD
 ```
 
 1. **Publish.** The CCTV system writes each recognised person's ID to the topic set by `KAFKA_TOPIC`, with the camera name as the key.
-2. **Read.** A background thread polls partition 0 from the end of the topic, so a restart shows new recognitions and never replays old ones.
-3. **Queue.** The app keeps up to 4 distinct messages, newest first. A control message starting with `ERROR` or `SUCCESS`, such as a camera problem, replaces the queue, because the screen should show that alone. Duplicates are dropped on purpose, so one person seen by several cameras shows once.
+2. **Read.** A background thread reads every camera at the entry point, because each camera has its own partition, or only those in `KAFKA_PARTITIONS`. It starts from the end of the topic, so a restart shows new recognitions and never replays old ones. It checks for newly added cameras every 60 seconds.
+3. **Queue.** The app keeps up to 4 distinct messages, newest first. Duplicates are dropped on purpose, so one person seen by several cameras shows once. A camera's `ERROR` or `SUCCESS` control message skips the queue and goes to the status strip instead (step 8).
 4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
 5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
-6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws them.
-7. **Check health.** Every pass of the loop checks TCP ports on the server, first the host, then each service. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
-8. **Report status.** An outage puts a red message on screen, and recovery puts a green one. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
+6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws each person as a card, newest first. With nobody to show, it shows a face guide. The look matches the Face-Dataset-Collector app's light theme, and the font is bundled with the app.
+7. **Check health.** Every pass of the loop checks TCP ports, first the host, then each service in `PROJECT_SERVICES`, or in `PROJECT_SERVICES_PORT` if that is not set. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
+8. **Report status.** An outage puts a red panel on screen, and recovery puts a green one. A camera problem shows as an amber chip under the header until that camera recovers, then as a green chip for 5 seconds. It never hides the rows. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
 9. **Clear.** After 15 seconds with no update, the screen is cleared so that old rows do not linger.
 
 Each flow is traced step by step in [docs/FLOW.md](docs/FLOW.md).
@@ -124,4 +129,4 @@ What exists and who owns it is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - There are no behaviour tests yet. CI proves the image builds and starts, not that the display works.
 - Nothing alerts on failure. Problems show on the screen or in `logs/`.
 - A kiosk needs internet access when the page loads, because `socket.io.js` comes from a CDN.
-- It reads partition 0 only, and the CCTV system sends each camera to its own partition (partition = camera number - 1, so `cctv-camera-3` goes to partition 2), so only the first camera at a point reaches the display. Whether every camera should feed one display is being confirmed.
+- Camera status lines are held in memory and cleared when the consumer is rebuilt, so they rely on the CCTV system re-sending `ERROR` while a problem lasts.

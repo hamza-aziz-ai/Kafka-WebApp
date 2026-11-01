@@ -28,6 +28,9 @@ Open a PR that reverts the squash commit, using a `fix:` title so that a new rel
 | Consumer group rename (PR #5) | Revert | None. The old group's offsets were never read |
 | `IMAGE_SERVER_ADDRESS` override (PR #5) | Revert, and remove the variable from deployments | None. The CCTV in-stack display depends on it, so tell that session first |
 | `client_log` removal (PR #6) | Revert | None. This also reopens the disk write risk |
+| `PROJECT_SERVICES` and new default ports | Revert. Older images ignore `PROJECT_SERVICES`, and with CCTV PR #62 their default list would fail on 20001 and 20012, so set `PROJECT_SERVICES_PORT` | None |
+| Default `IP_ADDRESS` of `127.0.0.1` | Set `IP_ADDRESS` on the display, with no deploy needed | None |
+| Read every partition | Set `KAFKA_PARTITIONS=0` to go back to the first camera without a deploy, or revert | None |
 | Image server timeout (PR #7) | Revert, or raise `IMAGE_SERVER_TIMEOUT` if the 5 seconds is the problem | None |
 
 This app has no database and no migrations, so a rollback never touches stored data. Topic names and the `/post_images` contract are shared with the CCTV system, so check with it before rolling back anything that touches them.

@@ -6,9 +6,9 @@ This project has no customers yet. The owner is simulating real-world conditions
 
 ## Never
 
-- Never commit secrets, keys, tokens or `.env` contents. `SECRET_KEY` comes from the environment only.
+- Never commit secrets, keys, tokens or `.env` contents. `SECRET_KEY` and `KAFKA_PASSWORD` come from the environment only.
 - Never read or edit `.env` or other secrets files without asking.
-- Never run production, deploy or release commands, or touch a live Kafka topic or the DGX, without asking.
+- Never run production, deploy or release commands, or touch a live Kafka topic or the CCTV server, without asking.
 - Never force push or rewrite history.
 - Never disable or weaken CI checks, gitleaks or the image smoke test.
 - Never write person IDs or face images to logs or to any new storage. This repo only passes them to the display.
@@ -28,14 +28,14 @@ This project has no customers yet. The owner is simulating real-world conditions
 - Changes to `Dockerfile`, `.dockerignore` or `.github/workflows/`.
 - New network calls or external hosts.
 - Adding or changing auth, CORS or the port the app listens on.
-- Changes to the default ports, topic or addresses in `parameters.py`, because deployed Raspberry Pis and the DGX services depend on them.
+- Changes to the default ports, topic or addresses in `parameters.py`, because deployed displays and the CCTV services depend on them.
 - Deleting files.
 
 ## Coupled code
 
 - The "Getting Started" status text is duplicated. `_consume_messages` emits it and `templates/index.html:192` matches it exactly to hold the message for 2 minutes, so change both together.
-- Kafka messages starting with `ERROR` or `SUCCESS` are control messages that replace the queue (`_consume_messages`). This app shows what the CCTV system sends, so the [contract](ARCHITECTURE.md#contract-with-the-cctv-system) is shared: check with that project before changing it, and tell it about anything here that changes what is displayed.
+- Kafka messages starting with `ERROR ` or `SUCCESS ` are camera control messages that go to `camera_status` (`update_camera_status`). This app shows what the CCTV system sends, so the [contract](ARCHITECTURE.md#contract-with-the-cctv-system) is shared: check with that project before changing it, and tell it about anything here that changes what is displayed.
 
 ## Keep it general
 
-- Never add a real company, client or site name, logo or branding to this repo. Use `<client>` and `<location>_<point>` style placeholders, and generic examples.
+- Never add a real company, client or site name, logo or branding to this repo, including third-party vendor logos. Use `<client>` and `<location>_<point>` style placeholders, and generic examples.
