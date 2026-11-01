@@ -39,5 +39,8 @@ IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
 
+# Seconds to wait on the image server, so a hung server cannot freeze the consumer thread
+IMAGE_SERVER_TIMEOUT = 5
+
 # Logs directory path
 LOGS_FOLDER = "logs"

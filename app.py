@@ -19,6 +19,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     DGX_IP_ADDRESS, \
     HOST_CHECK_PORT, \
     NETWORK_FAIL_CHECK, \
+    IMAGE_SERVER_TIMEOUT, \
     PROJECT_SERVICES_PORT
 
 app = Flask(__name__)
@@ -60,7 +61,7 @@ def ping_project_services() -> bool:
 def post_message_queue_and_get_images(data):
     global messages_to_display
     try:
-        response = requests.post(IMAGE_SERVER_ADDRESS, json=data)  # json= sets Content-Type; FastAPI rejects a body without it (422)
+        response = requests.post(IMAGE_SERVER_ADDRESS, json=data, timeout=IMAGE_SERVER_TIMEOUT)  # json= sets Content-Type; FastAPI rejects a body without it (422)
         if response.status_code == 200:
             messages_to_display = response.json()
         else:
