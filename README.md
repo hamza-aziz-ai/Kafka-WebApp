@@ -1,296 +1,8 @@
-# First Time Raspberry Pi Configuration as a Recognition Message Displayer
+# Kafka-WebApp
 
-## 1. Installing OS
+Kafka-WebApp is the live display for the CCTV Face Recognition Attendance System. It reads recognition messages from Kafka, fetches each person's face image, and shows the latest person IDs and faces on a screen at the attendance point. When the system or the network is down, the screen says so.
 
-Click the following link to get started with your Raspberry Pi:
-
-<https://www.raspberrypi.com/documentation/computers/getting-started.html>
-
-Additionally, you can walk through the following link to do your custom configurations:
-
-<https://www.raspberrypi.com/documentation/computers/configuration.html>
-
-> NOTE: You must give the following specified ***username*** and ***hostname*** while OS installation for the successful setup of your Raspberry Pi. If not given so, you may encounter several issues.
-
-- **username:** *raspberry*
-- **hostname:** *raspberry*
-
-## 2. Enabling Kafka Consumer's Flask Application Service
-
-### The Structure of Flask Application
-
-```tree
-Kafka-WebApp
-   ├── static/
-   │   └── img/
-   |       ├── camera-logo.png
-   |       ├── nvidia-logo.png
-   │       └── giventures-logo.png
-   ├── templates/
-   │   └── index.html
-   ├── app.py
-   ├── custom_logging.py
-   ├── parameters.py
-   └── requirements.txt
-```
-
-To get the `Kafka-WebApp` onto the Raspberry Pi, you can clone the repository from GitHub.
-
-```bash
-# Clone GitHub Repository
-git clone https://github.com/hamza-aziz-ai/Kafka-WebApp.git
-
-# Change directpry to Kafka-WebApp
-cd Kafka-WebApp
-```
-
-### The `parameters.py` file
-
-The [`parameters.py`](Kafka-WebApp/parameters.py) file contains important information to setup your flask application. You need to change these as per your requiremnets.
-
-```python
-# Project Services
-DGX_IP_ADDRESS <IP Address of DGX>    # e.g., "192.168.12.89"
-
-PROJECT_SERVICES_PORT = [
-    6385, 19000, 19001,     # InsightFace
-    19530,                  # Milvus Vector database
-    9092,                   # Kafka Broker
-    6381,                   # Redis Database
-    20001,                  # Database-Controller
-    20012,                  # Kafka-Message-Controller
-    20013,                  # Display-Image-Server
-    6386, 6970, 6971        # Face Liveness Detection
-]
-
-# Kafka IP and Port
-CONFLUENT_KAFKA_IP_ADDRESS = DGX_IP_ADDRESS
-CONFLUENT_KAFKA_PORT = 9092
-
-# Kafka topic for messages
-CONFLUENT_KAFKA_TOPIC = "feedback_messages_topic_for_<Replace with Camera-Name>"    # e.g., "feedback_messages_topic_for_library-gate"
-
-# Number of names to be displayed at once
-DISPLAY_LIST_SIZE = 4
-
-# Message Retention time on Screen
-STATUS_THRESHOLD = 15
-
-# Image Server Address
-IMAGE_SERVER_ADDRESS = f"http://{DGX_IP_ADDRESS}:20013/post_images"
-
-# Number of times to check for network failure
-NETWORK_FAIL_CHECK = 10
-
-# Logs directory path
-LOGS_FOLDER = "logs"
-```
-
-Once you made these, the next step is install the requirements required by the `Kafka-WebApp`
-
-### The `requirements.txt` file
-
-The [`requirements.txt`](Kafka-WebApp/requirements.txt) file contains the packages/libraries required for the **Kafka-WebApp**
-
-You can install these requirements by running the following command on the Raspberry Pi terminal
-
-```bash
-# Create and Activate a Python Virtual Environment
-python3 -m venv venv
-source venv/bin/activate
-```
-
-```bash
-# Upgrade pip and install the requirements
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-```
-
-Once you made these changes you are ready to setup your flask application service.
-
-### The *Flask Application Service*
-
-#### Step - 1) Create `flask-application-startup.sh`
-
-This file is responsible for starting the flask application.
-
-First, copy the below contents.
-
-```bash
-#!/bin/bash
-
-# Change directory to Kafka Web Application
-cd /home/raspberry/Kafka-WebApp
-
-# Activate the virtual environment
-source venv/bin/activate
-
-# Start the application at a specified port and open it to all incoming networks
-python3 -m flask --app app.py run --host 0.0.0.0 --port 9090
-```
-
-Now, create a `flask-application-startup.sh` file by running the following command and paste the copied contents into it.
-
-```bash
-sudo nano /usr/local/bin/flask-application-startup.sh
-```
-
-#### Step - 2) Create `flask-application-startup.service`
-
-This file is responsible for creating a service for our flask application which will help in automatically start the application on system reboot.
-
-Copy the below contents.
-
-```service
-[Unit]
-Description=Kafka Web Application
-
-[Service]
-ExecStart=/usr/local/bin/flask-application-startup.sh
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Now, create a `flask-application-startup.service` file by running the following command and paste the copied contents into it.
-
-```bash
-sudo nano /etc/systemd/system/flask-application-startup.service
-```
-
-### Step - 3) Start and Enable the Service
-
-Reload the daemon
-
-```bash
-sudo systemctl daemon-reload
-```
-
-Start the service
-
-```bash
-sudo systemctl start flask-application-startup.service
-```
-
-Check the Status of the Service
-
-```bash
-sudo systemctl status flask-application-startup.service
-```
-
-Enable the service to automatically restart on system reboot
-
-```bash
-sudo systemctl enable flask-application-startup.service
-```
-
-## 3. The KIOSK Mode
-
-### Step - 1) Install the Chromium Browser and Other Packages
-
-```bash
-sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install chromium-browser unclutter xdotool
-```
-
-### Step - 2) Create `kiosk-startup.sh`
-
-This file is responsible for starting the Chromium Browser in KIOSK Mode.
-
-Copy the below contents.
-
-```bash
-#!/bin/bash
-
-xset s noblank
-xset s off
-xset -dpms
-
-unclutter -idle 0.5 -root &
-
-sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' /home/raspberry/.config/chromium/Default/Preferences
-sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' /home/raspberry/.config/chromium/Default/Preferences
-
-/usr/bin/chromium-browser --noerrdialogs --disable-infobars --disable-application-cache --use-gl=egl --enable-gpu-rasterization --enable-native-gpu-memory-buffers --disable-software-rasterizer --kiosk http://localhost:9090 &  # Adjust the URL
-
-while true; do
-    xdotool keydown ctrl+Tab; xdotool keyup ctrl+Tab;
-    sleep 30
-done
-```
-
-Now, create a `kiosk-startup.sh` file by running the following command and paste the copied contents into it.
-
-```bash
-sudo nano /usr/local/bin/kiosk-startup.sh
-```
-
-### Step - 3) Create `kiosk-startup.service`
-
-This file is responsible for creating a service for our kiosk startup which will help in automatically start the kiosk on system reboot.
-
-Copy the below contents.
-
-```service
-[Unit]
-Description=Kiosk Mode Flask Application
-Wants=graphical.target
-After=graphical.target
-
-[Service]
-Environment=DISPLAY=:0.0
-Environment=XAUTHORITY=/home/raspberry/.Xauthority
-Type=simple
-ExecStart=/bin/bash /usr/local/bin/kiosk-startup.sh
-Restart=on-abort
-User=raspberry
-Group=raspberry
-
-[Install]
-WantedBy=graphical.target
-```
-
-Now, create a `kiosk-startup.service` file by running the following command and paste the copied contents into it.
-
-```bash
-sudo nano /etc/systemd/system/kiosk-startup.service
-```
-
-### Step - 4) Start and Enable the Service
-
-Reload the daemon
-
-```bash
-sudo systemctl daemon-reload
-```
-
-Start the service
-
-```bash
-sudo systemctl start kiosk-startup.service
-```
-
-Check the Status of the Service
-
-```bash
-sudo systemctl status kiosk-startup.service
-```
-
-Enable the service to automatically restart on system reboot
-
-```bash
-sudo systemctl enable kiosk-startup.service
-```
-
-## 4. Reboot the System
-
-To make these settings effect on the system, we will bw needing to restart the system. You can do this by running the following command in your terminal.
-
-```bash
-sudo reboot -h now
-```
-
-## Run with Docker
+## Quick start
 
 Each release publishes `ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>` for amd64 and arm64 (Raspberry Pi).
 
@@ -298,12 +10,118 @@ Each release publishes `ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>` for amd64 and 
 docker run -d --restart unless-stopped -p 9090:9090 -e IP_ADDRESS=<server-ip> ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>
 ```
 
+Then open `http://<host>:9090`.
+
 | Variable | Default | Meaning |
 |---|---|---|
 | `IP_ADDRESS` | `192.168.12.1` | Server that runs Kafka and the display image server |
-| `KAFKA_TOPIC` | `maingate_entry` | Topic to display |
+| `KAFKA_TOPIC` | `maingate_entry` | Topic to display. The Kafka consumer group is `<topic>.display` |
+| `IMAGE_SERVER_ADDRESS` | `http://<IP_ADDRESS>:20013/post_images` | Display image server. On a central host, set this to the server of this display's own client, or the display would show another client's faces |
 | `HOST_CHECK_PORT` | `22` | Port that shows the server is reachable |
 | `PROJECT_SERVICES_PORT` | the list in `parameters.py` | Comma-separated ports that must answer before consuming starts |
 | `SECRET_KEY` | random at each start | Flask session key |
 
+To run on a Raspberry Pi without Docker, follow [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md).
+
 PR titles must be Conventional Commits: `feat:` gives a minor release, `fix:`/`perf:` a patch, and `type!:` a major.
+
+## System Design
+
+What happens to one recognition message. Solid arrows are the path every message takes; dotted arrows run on the side.
+
+```mermaid
+flowchart TD
+    A["`**1** CCTV system publishes to the Kafka topic`"]
+    B["`**2** Consumer thread reads the message`"]
+    C["`**3** Queue keeps the newest 4 distinct messages`"]
+    D["`**4** POST the queue to the display image server`"]
+    E["`**5** Names and faces are held in memory`"]
+    F["`**6** Browser polls every 100 ms and draws the rows`"]
+    G["`**7** Health checks of the server and its services`"]
+    H["`**8** Status message on screen`"]
+    I["`**9** Idle for 15 seconds: clear the screen`"]
+
+    A --> B --> C --> D --> E --> F
+    G -.-> B
+    G -.-> H
+    H -.-> F
+    E -.-> I
+```
+
+1. **Publish.** The CCTV system writes each recognised person's ID to the topic set by `KAFKA_TOPIC`, with the camera name as the key.
+2. **Read.** A background thread polls partition 0 from the end of the topic, so a restart shows new recognitions and never replays old ones.
+3. **Queue.** The app keeps up to 4 distinct messages, newest first. A control message starting with `ERROR` or `SUCCESS`, such as a camera problem, replaces the queue, because the screen should show that alone. Duplicates are dropped on purpose, so one person seen by several cameras shows once.
+4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
+5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
+6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws them.
+7. **Check health.** Every pass of the loop checks TCP ports on the server, first the host, then each service. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
+8. **Report status.** An outage puts a red message on screen, and recovery puts a green one. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
+9. **Clear.** After 15 seconds with no update, the screen is cleared so that old rows do not linger.
+
+Each flow is traced step by step in [docs/FLOW.md](docs/FLOW.md).
+
+## Solution Architecture
+
+How the code becomes the live system.
+
+```mermaid
+flowchart TD
+    A["`**1** Pull request`"]
+    B["`**2** CI: lint, secret scan, image builds, smoke test`"]
+    C["`**3** Automerge: squash merge, delete branch`"]
+    D["`**4** Release: version, images, tag`"]
+    E[("`**5** GitHub Container Registry`")]
+    subgraph host["`**6** Display host`"]
+        F["`Flask and Socket.IO on port 9090`"]
+        G["`Consumer and watchdog threads`"]
+        H["`Chromium kiosk`"]
+    end
+    subgraph server["`**7** CCTV server`"]
+        I[("`Kafka`")]
+        J["`Display image server`"]
+        K["`Other services, health checked only`"]
+    end
+
+    A --> B --> C --> D --> E --> host
+    H --> F
+    G --> I
+    G --> J
+    G -.-> K
+```
+
+1. **Pull request.** The title sets the release type, because squash merges make it the commit subject.
+2. **CI.** Runs ruff, gitleaks, amd64 and arm64 image builds, and a smoke test that dependencies resolve and settings load. It does not test app behaviour yet.
+3. **Automerge.** Green CI is the merge gate. Automerge squash-merges any non-draft PR from this repo and deletes its branch.
+4. **Release.** Picks the version from the merged titles, reruns CI on the merged commit, pushes images, then tags. `docs:` PRs merge without a release.
+5. **Registry.** Images carry version tags only, and there is no `latest`.
+6. **Display host.** An operator runs the new tag; nothing deploys automatically. The app runs as a non-root user, and a kiosk browser shows the page.
+7. **CCTV server.** The app calls only Kafka and the display image server. It checks the other services' ports so that the screen can say the whole system is down.
+
+What exists and who owns it is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [docs/FLOW.md](docs/FLOW.md) | Detailed system design: how execution travels |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed solution architecture: modules, topology, ownership |
+| [docs/DATA.md](docs/DATA.md) | Data structures and why they fit |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | What was chosen and why |
+| [docs/ALTERNATIVES.md](docs/ALTERNATIVES.md) | What was rejected and why |
+| [docs/THREAT.md](docs/THREAT.md) | Who could abuse it and what stops them |
+| [docs/FAILURE.md](docs/FAILURE.md) | Where it breaks and how you would notice |
+| [docs/TESTING.md](docs/TESTING.md) | How changes are verified |
+| [docs/ROLLBACK.md](docs/ROLLBACK.md) | How to undo a change |
+| [docs/CONSTRAINTS.md](docs/CONSTRAINTS.md) | Rules for anyone changing this repo, including AI tools |
+| [docs/HANDOVER.md](docs/HANDOVER.md) | Where things stand right now |
+| [docs/SETUP-RASPBERRY-PI.md](docs/SETUP-RASPBERRY-PI.md) | Raspberry Pi setup without Docker |
+| [Configure-Parameters-for-Raspberry.md](Configure-Parameters-for-Raspberry.md) | Raspberry Pi parameter reference |
+
+## Known limitations
+
+- There is no auth on the page or socket, and any origin can connect, so anyone who can reach port 9090 can see person IDs and faces. Keep the port on a trusted network.
+- It runs on the Flask development server.
+- There are no behaviour tests yet. CI proves the image builds and starts, not that the display works.
+- Nothing alerts on failure. Problems show on the screen or in `logs/`.
+- A kiosk needs internet access when the page loads, because `socket.io.js` comes from a CDN.
+- It reads partition 0 only, and the CCTV system sends each camera to its own partition (partition = camera number - 1, so `cctv-camera-3` goes to partition 2), so only the first camera at a point reaches the display. Whether every camera should feed one display is being confirmed.
