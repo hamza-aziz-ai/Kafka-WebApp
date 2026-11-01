@@ -2,7 +2,7 @@
 
 This is the detailed System Design. The overview is in [README.md](../README.md), and what exists and who owns it is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Checked against:** `main` at `0f05931` (release `v0.1.2`) with PR #5 (`7d2473e`), PR #6 (`03c3369`), PR #7 (`1c6cad9`) and the all-partitions change merged on top.
+**Checked against:** `main` at `0c6df18` (release `v0.2.0`) with the all-cameras PR on top.
 
 ## How to read the diagrams
 

@@ -2,7 +2,7 @@
 
 This is the detailed Solution Architecture. The overview is in [README.md](../README.md), and how execution moves is in [FLOW.md](FLOW.md).
 
-**Checked against:** `main` at `0f05931` (release `v0.1.2`) with PR #5 (`7d2473e`), PR #6 (`03c3369`), PR #7 (`1c6cad9`) and the all-partitions change merged on top.
+**Checked against:** `main` at `0c6df18` (release `v0.2.0`) with the all-cameras PR on top.
 
 This system has no customers yet. It is being run through simulated real-world conditions before going to market, and "client" means a simulated client.
 

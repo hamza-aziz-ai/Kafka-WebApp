@@ -81,6 +81,7 @@ Chosen: 3.
 Why: Option 1 stalls until CI returns, and option 2 goes stale within a day. A merged test tree let every fact be checked.
 Trade-off: Until the three PRs merge, the docs describe code that is not on `main` yet. Each detailed doc states this at the top.
 Revisit if: One of the three PRs changes or is dropped, because the docs must then change too.
+Outcome: The three PRs merged unchanged on 2026-11-01 in `v0.2.0`, so the docs and the code caught up.
 
 ## D-004: Delete the `client_log` handler (PR #6)
 

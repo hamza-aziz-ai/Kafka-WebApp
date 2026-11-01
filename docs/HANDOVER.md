@@ -11,13 +11,9 @@ Done:
 - Confirmed the display contract with the CCTV session and recorded it in `ARCHITECTURE.md`.
 
 In progress:
-- Open PRs, all waiting for CI. GitHub Actions is blocked until the quota resets on 2026-11-01 at 00:00 UTC (05:30 IST). The last release is `v0.1.2`. Green CI merges each PR and deletes its branch automatically.
-- PR #5: `group.id` becomes `<topic>.display`, and `IMAGE_SERVER_ADDRESS` can be set from the environment (CCTV decision D-036, steps 1 and 2).
-- PR #6: removes the `client_log` handler. Before the fix, an anonymous client could write to `client_console.log`.
-- PR #7: 5 second timeout on image server calls. Before the fix, a hung server blocked the consumer thread.
-- PR #8: removes the company logo, so the repo stays general. The redesign removes the last two logos.
-- PR #9: the docs. The detailed docs describe the code with #5, #6 and #7 merged.
-- Branch `feat/display-all-partitions`, with no PR yet: reads every partition, adds `KAFKA_PARTITIONS`, adds the per-camera status strip, adds `PROJECT_SERVICES` with new default ports for CCTV PR #62, and adds SASL login for CCTV decision D-036, step 3c, and redesigns the page in the Face-Dataset-Collector light theme with no logos. It is stacked on #5 to #9, so opening a PR now would merge all of them as one. Tested with `test_partitions.py` and on a private broker.
+- Released `v0.2.0` on 2026-11-01 (`0c6df18`): PRs #4 to #9 merged on their first CI run. It holds the consumer group per topic, the `IMAGE_SERVER_ADDRESS` override, the `client_log` removal, the image server timeout, the company logo removal and these docs.
+- Branch `feat/display-all-cameras`, rebuilt on `v0.2.0` from `feat/display-all-partitions`: reads every camera with `KAFKA_PARTITIONS` to narrow it, the per-camera status strip, `PROJECT_SERVICES` with new default ports, SASL login, the light theme redesign with no logos, `IP_ADDRESS` defaulting to `127.0.0.1`, and the `SERVER_IP_ADDRESS` rename. Green CI merges it and cuts `v0.3.0`.
+- The live display in the CCTV stack runs `v0.1.2` until CCTV pins a newer release.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.
@@ -35,8 +31,7 @@ Assumptions:
 - Verified: the Kafka and `/post_images` contract, by the CCTV session against its code on 2026-10-31.
 
 Next:
-- After 05:30 IST on 2026-11-01, rerun CI on PRs #5, #6 and #7 (`gh run rerun 41190876365`, `41192493079`, `41192556848`) and on PR #8 and the docs PR. Marking a PR ready does not start CI, and `automerge.yml` only sweeps when a CI run finishes. PR #4 is not a draft and will automerge if its rerun passes.
-- After #5 to #9 merge: rebase the commits at the tip of `feat/display-all-partitions` on `main` with `git rebase --onto origin/main origin/docs/system-design`, dropping the local merge commits, then open its PR.
+- After the all-cameras PR is released: send the CCTV session the tag to pin, and set `ROLLBACK.md`'s last known good release once it proves itself on a display. Then delete the old `feat/display-all-partitions` branch.
 - Add `python test_partitions.py` to CI, which needs the owner's approval.
 - Run the simulation in `FAILURE.md` and record real results and recovery times.
 - Owner reviews `CONSTRAINTS.md`.
