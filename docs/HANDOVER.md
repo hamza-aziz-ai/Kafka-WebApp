@@ -2,18 +2,16 @@
 
 Read this first and update it last, every session. Newest entry goes on top. Then read [CONSTRAINTS.md](CONSTRAINTS.md).
 
-## Latest session: 2026-10-31 (model: Claude Opus 5.5, `claude-opus-5-5`)
+## Latest session: 2026-11-01 (model: Claude Opus 5.5, `claude-opus-5-5`)
 
 Done:
-- Created `docs/` following the Defend What You Ship field guide: `CONSTRAINTS.md`, `FLOW.md`, `ARCHITECTURE.md`, `DATA.md`, `DECISIONS.md`, `ALTERNATIVES.md`, `THREAT.md`, `FAILURE.md`, `TESTING.md`, `ROLLBACK.md`. `defense/` briefs are not started, because they belong in the owner's own words.
-- Rebuilt `README.md` with System Design and Solution Architecture, and moved the Raspberry Pi setup to `SETUP-RASPBERRY-PI.md`.
-- Added `docs` to `.dockerignore`, because the existing `*.md` rule only matches the repo root and `COPY . .` would have put these files in the published image.
-- Confirmed the display contract with the CCTV session and recorded it in `ARCHITECTURE.md`.
+- Released `v0.2.0` (`0c6df18`): PRs #4 to #9 merged on their first CI run. It holds the consumer group per topic, the `IMAGE_SERVER_ADDRESS` override, the `client_log` removal, the image server timeout, the company logo removal and these docs.
+- Released `v0.3.0` (`c1f4d7f`): PR #10 merged on its first CI run. It reads every camera with `KAFKA_PARTITIONS` to narrow it, adds the per-camera status strip, `PROJECT_SERVICES` with new default ports, SASL login, the light theme redesign with no logos, `IP_ADDRESS` defaulting to `127.0.0.1`, and the `SERVER_IP_ADDRESS` rename.
+- Sent the CCTV session the `v0.3.0` tag to pin in its compose file. The owner deleted the old `feat/display-all-partitions` branch.
+- The merge plan, the rehearsal script and the test tools are kept outside the repo, in `Kafka-WebApp-merge-plan` beside it.
 
 In progress:
-- Released `v0.2.0` on 2026-11-01 (`0c6df18`): PRs #4 to #9 merged on their first CI run. It holds the consumer group per topic, the `IMAGE_SERVER_ADDRESS` override, the `client_log` removal, the image server timeout, the company logo removal and these docs.
-- Branch `feat/display-all-cameras`, rebuilt on `v0.2.0` from `feat/display-all-partitions`: reads every camera with `KAFKA_PARTITIONS` to narrow it, the per-camera status strip, `PROJECT_SERVICES` with new default ports, SASL login, the light theme redesign with no logos, `IP_ADDRESS` defaulting to `127.0.0.1`, and the `SERVER_IP_ADDRESS` rename. Green CI merges it and cuts `v0.3.0`.
-- The live display in the CCTV stack runs `v0.1.2` until CCTV pins a newer release.
+- The live display in the CCTV stack runs `v0.1.2` until CCTV pins `v0.3.0`. Until then it shows the first camera only.
 
 Broken or risky (found by reading the code, not reproduced or fixed yet):
 - `cors_allowed_origins="*"` lets any origin connect.
@@ -31,12 +29,20 @@ Assumptions:
 - Verified: the Kafka and `/post_images` contract, by the CCTV session against its code on 2026-10-31.
 
 Next:
-- After the all-cameras PR is released: send the CCTV session the tag to pin, and set `ROLLBACK.md`'s last known good release once it proves itself on a display. Then delete the old `feat/display-all-partitions` branch.
+- Once CCTV runs `v0.3.0`: check it live, then set `ROLLBACK.md`'s last known good release to `v0.3.0`.
 - Add `python test_partitions.py` to CI, which needs the owner's approval.
-- Run the simulation in `FAILURE.md` and record real results and recovery times.
+- Run the simulation in `FAILURE.md` and record real results and recovery times, including the 5 second timeout and the light theme's contrast at a gate.
 - Owner reviews `CONSTRAINTS.md`.
 
 Do not touch:
 - See [CONSTRAINTS.md](CONSTRAINTS.md).
 
 Read first: `ARCHITECTURE.md`, `CONSTRAINTS.md`.
+
+## Session: 2026-10-31 (model: Claude Opus 5.5, `claude-opus-5-5`)
+
+Done:
+- Created `docs/` following the Defend What You Ship field guide: `CONSTRAINTS.md`, `FLOW.md`, `ARCHITECTURE.md`, `DATA.md`, `DECISIONS.md`, `ALTERNATIVES.md`, `THREAT.md`, `FAILURE.md`, `TESTING.md`, `ROLLBACK.md`. `defense/` briefs are not started, because they belong in the owner's own words.
+- Rebuilt `README.md` with System Design and Solution Architecture, and moved the Raspberry Pi setup to `SETUP-RASPBERRY-PI.md`.
+- Added `docs` to `.dockerignore`, because the existing `*.md` rule only matches the repo root and `COPY . .` would have put these files in the published image.
+- Confirmed the display contract with the CCTV session and recorded it in `ARCHITECTURE.md`.
