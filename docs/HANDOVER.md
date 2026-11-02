@@ -2,7 +2,23 @@
 
 Read this first and update it last, every session. Newest entry goes on top. Then read [CONSTRAINTS.md](CONSTRAINTS.md).
 
-## Latest session: 2026-11-01 (model: Claude Opus 5.5, `claude-opus-5-5`)
+## Latest session: 2026-11-02 (model: Claude Opus 5.5, `claude-opus-5-5`)
+
+Done:
+- Released `v0.3.1` (`95692b4`): PR #12 makes the page connect its socket to its own origin. The page hardcoded `http://`, so behind the CCTV stack's HTTPS proxy the browser blocked the socket and the display got no live updates. Tested in real headless Chrome over plain HTTP and through a throwaway Caddy proxy.
+- Released `v0.4.0` (`d917cf0`): PR #13, at the owner's request, moves camera chips into a one-line marquee at the bottom of the screen (D-013). Tested in real headless Chrome with 12 failed cameras and 4 rows at 1920x1080 and 1024x600. The owner saw it running and liked it.
+- Sent the CCTV session both releases with their digests.
+
+In progress:
+- The CCTV stack still ran `v0.3.0` at the last check. The CCTV session pins the new release, then confirms in a signed-in browser that live rows arrive through its real proxy and session cookie, which this session could not test.
+
+Next:
+- After that confirmation, set `ROLLBACK.md`'s last known good release to what the stack runs. This replaces the first Next item below. The other items there still stand.
+
+Risks added:
+- Marquee limits are in D-013: a list change restarts the scroll, and a 5 second green chip may be only partly seen. It has not been run on real Raspberry Pi hardware.
+
+## Session: 2026-11-01 (model: Claude Opus 5.5, `claude-opus-5-5`)
 
 Done:
 - Released `v0.2.0` (`0c6df18`): PRs #4 to #9 merged on their first CI run. It holds the consumer group per topic, the `IMAGE_SERVER_ADDRESS` override, the `client_log` removal, the image server timeout, the company logo removal and these docs.
