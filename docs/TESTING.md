@@ -67,7 +67,7 @@ There is no automated end-to-end test, so walk this by hand against a CCTV host 
 
 1. Start the app with `IP_ADDRESS` set, and open `http://<host>:9090`.
 2. Stand in front of each camera at the point in turn. Your person ID and face appear for each, and they clear after about 15 seconds of no activity.
-3. Show one person, then four, including a long ID. The portrait stays small, and the name stays beside it at full size.
+3. Show one person, then four, including a long ID with underscores, such as `maingate_visitor_0000123456789_01`. The portrait stays small and the name stays beside it. A short name such as `hamza_aziz` stays on one line, shrinking if it must, and a long one breaks only after an underscore.
 4. Block one camera. An amber chip for it scrolls along the bottom of the screen and stays, while the other cameras' cards keep working. Restore it, and a green chip shows for 5 seconds.
 5. Stop one service on the CCTV host. A red `Temporarily Down` panel appears.
 6. Start it again. A green `Getting Started` panel with a progress bar shows for 2 minutes, and recognition then resumes.
