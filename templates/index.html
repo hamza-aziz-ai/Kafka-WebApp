@@ -206,7 +206,12 @@
             font-weight: 600;
             line-height: 1.1;
             font-variant-numeric: tabular-nums;
-            overflow-wrap: anywhere;
+            white-space: nowrap; /* fitName shrinks it to one line */
+        }
+
+        .person-id.wrap {
+            white-space: normal;
+            overflow-wrap: anywhere; /* Breaks after an underscore first, mid-word only if one part still does not fit */
         }
 
         .person-tag {
@@ -388,7 +393,7 @@
                 image.src = "data:image/jpg;base64," + row[personId];
                 image.alt = '';
                 const text = element('div', 'person-text');
-                text.appendChild(element('div', 'person-id', personId));
+                text.appendChild(element('div', 'person-id', personId.replaceAll('_', '_\u200B'))); // Zero-width space: a break point after each underscore, not <wbr>, which Chrome breaks at even under nowrap
                 text.appendChild(element('div', 'person-tag', index === 0 ? 'Just now' : 'Recognised'));
                 card.appendChild(image);
                 card.appendChild(text);
@@ -397,10 +402,31 @@
             return grid;
         }
 
+        // Shrinks a name to fit one line, down to half size; past that it wraps at underscores
+        function fitName(name) {
+            name.style.fontSize = '';
+            name.classList.remove('wrap');
+            if (name.scrollWidth <= name.clientWidth) {
+                return;
+            }
+            const size = parseFloat(getComputedStyle(name).fontSize);
+            const fit = Math.floor(size * name.clientWidth / (name.scrollWidth + 1)); // + 1 because scrollWidth is rounded
+            name.style.fontSize = Math.max(fit, size / 2) + 'px';
+            name.classList.toggle('wrap', fit < size / 2);
+        }
+
+        function fitNames() {
+            document.querySelectorAll('.person-id').forEach(fitName);
+        }
+
+        window.addEventListener('resize', fitNames);
+        document.fonts.addEventListener('loadingdone', fitNames); // The font file changes text widths when it arrives
+
         function draw(key, build) {
             if (key !== drawnContent) {
                 drawnContent = key;
                 document.getElementById('content').replaceChildren(build());
+                fitNames();
             }
         }
 

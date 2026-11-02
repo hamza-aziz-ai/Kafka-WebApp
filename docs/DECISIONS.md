@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-014: Shrink a long name to one line, then wrap it after an underscore
+
+Date: 2026-11-02. Model: Claude Opus 5.5. Asked for by the owner through the CCTV session.
+Context: `overflow-wrap: anywhere` broke `hamza_aziz` as "hamza_azi" and "z" on a 2000 px wide screen. Person IDs use underscores, which are not break points, so the browser broke at the last letter that fit.
+Options: 1) shrink the font to fit one line, down to half size, then wrap after an underscore 2) ellipsize 3) font size from the name length in CSS alone.
+Chosen: 1. The page measures each name after drawing it and on resize or font load, scales the font down in one step, and below half size wraps at a zero-width space placed after each underscore. `<wbr>` was tried first, but Chrome breaks at it even under `nowrap`.
+Why: Ellipsis hides the end of an ID, where visitor IDs differ, so two people could look the same. A length guess in CSS is wrong for wide letters.
+Trade-off: Names in one grid can show at different sizes. An ID part with no underscore that does not fit at half size still breaks mid-word, which happens on a 1080x1920 portrait screen, where the name column is 120 px, and with long IDs that have no underscores.
+Revisit if: IDs without underscores become common, or a portrait kiosk is deployed.
+
 ## D-013: Scroll camera problems in a marquee at the bottom of the screen
 
 Date: 2026-11-02. Model: Claude Opus 5.5. Asked for by the owner.
