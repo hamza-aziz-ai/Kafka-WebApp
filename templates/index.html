@@ -161,6 +161,7 @@
             min-height: 0;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr)); /* Fixed, or one or two cards fill the height and the portrait squeezes out the name */
             grid-auto-rows: minmax(0, 1fr);
             gap: 3vh;
         }
@@ -179,7 +180,7 @@
         }
 
         .person img {
-            height: 100%;
+            height: min(100%, 20vw); /* Width too, or a tall screen squeezes out the name */
             aspect-ratio: 1;
             flex: none;
             box-sizing: border-box;
@@ -201,7 +202,7 @@
         }
 
         .person-id {
-            font-size: 7vh;
+            font-size: min(7vh, 4vw);
             font-weight: 600;
             line-height: 1.1;
             font-variant-numeric: tabular-nums;
