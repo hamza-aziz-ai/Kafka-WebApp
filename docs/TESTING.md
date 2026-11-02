@@ -67,7 +67,7 @@ There is no automated end-to-end test, so walk this by hand against a CCTV host 
 
 1. Start the app with `IP_ADDRESS` set, and open `http://<host>:9090`.
 2. Stand in front of each camera at the point in turn. Your person ID and face appear for each, and they clear after about 15 seconds of no activity.
-3. Block one camera. An amber chip for it appears under the header and stays, while the other cameras' cards keep working. Restore it, and a green chip shows for 5 seconds.
+3. Block one camera. An amber chip for it scrolls along the bottom of the screen and stays, while the other cameras' cards keep working. Restore it, and a green chip shows for 5 seconds.
 4. Stop one service on the CCTV host. A red `Temporarily Down` panel appears.
 5. Start it again. A green `Getting Started` panel with a progress bar shows for 2 minutes, and recognition then resumes.
 6. Unplug the network. A red `Network Issue` panel appears. Reconnect, and it recovers.
