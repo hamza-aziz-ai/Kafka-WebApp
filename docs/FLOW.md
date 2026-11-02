@@ -155,7 +155,7 @@ sequenceDiagram
 4. **Push.** Status messages use `socketio.emit` once and are not stored in `messages_to_display`, so a page that loads after the push does not see them.
 5. **Error.** An ERROR fills the content area as a red panel until a SUCCESS or normal rows arrive.
 6. **Success.** A SUCCESS fills the content area as a green panel for 5 seconds, or for 2 minutes with a progress bar for the `Getting Started` text.
-7. **Rows.** Each person is a card, with the newest first and marked in teal. Person IDs are written with `textContent`, and each image is set from a base64 `data:` URL. With no rows the page shows a face guide. The server repeats itself every 100 ms, so the page redraws only when the content changes, which also stops the progress bar restarting.
+7. **Rows.** Each person is a card in a grid of two fixed rows, so a card is the same size whether one person or four are showing, with the newest first and marked in teal. Person IDs are written with `textContent`, and each image is set from a base64 `data:` URL. With no rows the page shows a face guide. The server repeats itself every 100 ms, so the page redraws only when the content changes, which also stops the progress bar restarting.
 
 ## F4. The consumer thread dies
 
