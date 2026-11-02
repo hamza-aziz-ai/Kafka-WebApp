@@ -14,7 +14,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 | Settings | `KAFKA_PARTITIONS` names a partition that does not exist | A warning is logged at every check, and it is picked up when it appears | Log only |
 | Settings | `IP_ADDRESS` not set | The default `127.0.0.1` is used. In a container that is the container itself, so a red `Network Issue` panel shows | On screen, in the log |
 | Settings | `KAFKA_PARTITIONS` is not whole numbers | The app stops at startup with a clear error | The container exits |
-| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, shown as an amber chip until that camera's `SUCCESS` | On screen, in the strip |
+| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS` | On screen, in the strip |
 | Camera | Added while running | Its partition is picked up within 60 seconds, and anything it sent before then is not shown | Log: `Reading <topic> partitions [...]` |
 | Image server | Unknown person ID or missing image | A placeholder JPEG shows under the ID, with no error | A person spotting the placeholder |
 | Image server | Hung, port open | Each message waits 5 seconds, then the update is dropped. The screen goes blank and the consumer falls behind | Log only |

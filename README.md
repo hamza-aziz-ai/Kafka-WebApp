@@ -60,7 +60,7 @@ flowchart TD
 5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
 6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws each person as a card, newest first. With nobody to show, it shows a face guide. The look matches the Face-Dataset-Collector app's light theme, and the font is bundled with the app.
 7. **Check health.** Every pass of the loop checks TCP ports, first the host, then each service in `PROJECT_SERVICES`, or in `PROJECT_SERVICES_PORT` if that is not set. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
-8. **Report status.** An outage puts a red panel on screen, and recovery puts a green one. A camera problem shows as an amber chip under the header until that camera recovers, then as a green chip for 5 seconds. It never hides the rows. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
+8. **Report status.** An outage puts a red panel on screen, and recovery puts a green one. A camera problem scrolls as an amber chip in a marquee along the bottom of the screen until that camera recovers, then as a green chip for 5 seconds. It never hides the rows, and any number of problems takes one line. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
 9. **Clear.** After 15 seconds with no update, the screen is cleared so that old rows do not linger.
 
 Each flow is traced step by step in [docs/FLOW.md](docs/FLOW.md).

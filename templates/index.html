@@ -94,17 +94,43 @@
             color: var(--ink-muted);
         }
 
+        /* One line at the foot of the screen, so any number of camera problems takes the same space from the person cards */
         #camera-status {
-            display: flex;
-            flex-direction: column;
-            gap: 1.1vh;
+            flex: none;
+            overflow: hidden;
         }
 
         #camera-status:empty {
             display: none;
         }
 
+        .chips {
+            display: flex;
+            gap: 1.2vw;
+            width: max-content;
+            padding-left: 100%;
+            white-space: nowrap;
+            animation: marquee linear infinite;
+        }
+
+        @keyframes marquee {
+            to {
+                transform: translateX(-100%);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .chips {
+                flex-wrap: wrap;
+                width: auto;
+                padding-left: 0;
+                white-space: normal;
+                animation: none;
+            }
+        }
+
         .chip {
+            flex: none;
             box-sizing: border-box;
             padding: 1.1vh 1vw;
             border-radius: 6px;
@@ -287,8 +313,8 @@
             </div>
             <div class="location">{{ location }}</div>
         </header>
-        <div id="camera-status"></div>
         <main id="content"></main>
+        <div id="camera-status"></div>
     </div>
 
     <script type="text/javascript">
@@ -303,6 +329,7 @@
         let isErrorPersisted = false; // Flag to check if error message should persist
         let isSuccessPersisted = false; // Flag to check if success message should persist
         let drawnContent = null; // The server repeats itself every 100 ms: redraw only on a change, or the progress bar restarts
+        let drawnStatus = null; // The same goes for the marquee
 
         function element(tag, className, text) {
             const node = document.createElement(tag);
@@ -314,9 +341,21 @@
         }
 
         function updateCameraStatus(statuses) {
-            document.getElementById('camera-status').replaceChildren(...statuses.map(status =>
-                element('div', status.level === 'ERROR' ? 'chip chip-error' : 'chip chip-success', status.text)
-            ));
+            const key = JSON.stringify(statuses);
+            if (key === drawnStatus) {
+                return;
+            }
+            drawnStatus = key;
+            const strip = document.getElementById('camera-status');
+            strip.replaceChildren();
+            if (statuses.length > 0) {
+                const chips = element('div', 'chips');
+                chips.replaceChildren(...statuses.map(status =>
+                    element('div', status.level === 'ERROR' ? 'chip chip-error' : 'chip chip-success', status.text)
+                ));
+                strip.appendChild(chips);
+                chips.style.animationDuration = chips.offsetWidth / (window.innerHeight * 0.15) + 's'; // Same reading speed however many cameras are listed
+            }
         }
 
         function drawNotice(type, text) {

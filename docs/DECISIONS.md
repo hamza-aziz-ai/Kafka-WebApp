@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-013: Scroll camera problems in a marquee at the bottom of the screen
+
+Date: 2026-11-02. Model: Claude Opus 5.5. Asked for by the owner.
+Context: D-007 stacked one line per camera under the header, so several failed cameras pushed the person cards out of the main area.
+Options: 1) a one-line marquee at the bottom 2) keep the stacked lines 3) one line that scrolls only when it overflows.
+Chosen: 1. The strip is a flex sibling after `main`, so the cards shrink by one fixed line and it does not overlap them, which replaces the overlap reason in D-007.
+Why: Any number of cameras costs the same space, and recognition rows stay readable.
+Trade-off: Text moves, and with many cameras a problem can be off screen for a while: 12 cameras take about 65 seconds to pass. A list change restarts the scroll, so frequent changes favour the first cameras. A green chip lasts 5 seconds, so it may be only partly seen, or not at all when it sorts behind others. A browser set to reduce motion gets wrapped lines instead.
+Revisit if: Cameras at a point change often enough that the last ones in the list are not seen.
+
 ## D-012: Rename `DGX_IP_ADDRESS` to `SERVER_IP_ADDRESS`
 
 Date: 2026-10-31. Model: Claude Opus 5.5. Chosen by the owner.

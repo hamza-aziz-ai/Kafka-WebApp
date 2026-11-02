@@ -156,6 +156,7 @@ def check_page():
     assert response.status_code == 200
     assert parameters.DISPLAY_LOCATION in page
     assert "static/img" not in page and "nvidia" not in page.lower()
+    assert page.index('id="content"') < page.index('id="camera-status"')
     for font in ("regular", "medium", "semibold"):
         assert f"fonts/ibm_plex_sans_{font}.ttf" in page
         assert app.app.test_client().get(f"/static/fonts/ibm_plex_sans_{font}.ttf").status_code == 200
