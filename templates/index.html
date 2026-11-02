@@ -295,7 +295,7 @@
         // Must match the text in app.py exactly: it holds this message for 2 minutes
         const STARTING_MESSAGE = "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes";
 
-        const socket = io.connect('http://' + document.domain + ':' + location.port);
+        const socket = io.connect(); // Same origin, so it works on plain HTTP and behind an HTTPS proxy
         let lastUpdate = Date.now();
         const clearIntervalTime = 15000; // 15 seconds
         let errorMessage = ''; // Store the current error message

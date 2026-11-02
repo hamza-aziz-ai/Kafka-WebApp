@@ -150,7 +150,7 @@ sequenceDiagram
 ```
 
 1. **Load.** `index` renders `templates/index.html`. The page loads `socket.io.js` from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
-2. **Connect.** `handle_connect` sends the current value straight away.
+2. **Connect.** The page connects to its own origin, so the same page works over plain HTTP and behind an HTTPS proxy. `handle_connect` sends the current value straight away.
 3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page draws as amber and green chips under the header. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
 4. **Push.** Status messages use `socketio.emit` once and are not stored in `messages_to_display`, so a page that loads after the push does not see them.
 5. **Error.** An ERROR fills the content area as a red panel until a SUCCESS or normal rows arrive.
