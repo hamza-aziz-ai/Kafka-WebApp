@@ -11,11 +11,10 @@ Done:
 - Released `v0.4.1` (`4891e0a`): PR #14 fixes the squeezed name. With one or two people, the single grid row took the full height, the portrait grew to about 729 px and the name fell to one letter per line. The grid now always has two rows, and the portrait and name are capped by width too. The card CSS was unchanged from `v0.3.0`, so this predates the marquee. All 16 landscape cases were clean in real headless Chrome.
 - Sent the CCTV session all three releases with their digests.
 
-In progress:
-- The CCTV session pins `v0.4.1` in its next release, then confirms a one-person card on the real page.
+- The CCTV session deployed `v0.4.1` in CCTV `v2.9.1` and reported a live recognition on the signed-in HTTPS page: one person, about 315 px portrait, the name on one line, clear of the header and marquee. `ROLLBACK.md`'s last known good is now `v0.4.1`.
 
 Next:
-- After that confirmation, set `ROLLBACK.md`'s last known good release to what the stack runs. This replaces the first Next item below. The other items there still stand.
+- The first Next item below is done. The other items there still stand.
 
 Risks added:
 - Marquee limits are in D-013: a list change restarts the scroll, and a 5 second green chip may be only partly seen. It has not been run on real Raspberry Pi hardware.
