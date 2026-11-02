@@ -7,16 +7,20 @@ Read this first and update it last, every session. Newest entry goes on top. The
 Done:
 - Released `v0.3.1` (`95692b4`): PR #12 makes the page connect its socket to its own origin. The page hardcoded `http://`, so behind the CCTV stack's HTTPS proxy the browser blocked the socket and the display got no live updates. Tested in real headless Chrome over plain HTTP and through a throwaway Caddy proxy.
 - Released `v0.4.0` (`d917cf0`): PR #13, at the owner's request, moves camera chips into a one-line marquee at the bottom of the screen (D-013). Tested in real headless Chrome with 12 failed cameras and 4 rows at 1920x1080 and 1024x600. The owner saw it running and liked it.
-- Sent the CCTV session both releases with their digests.
+- The CCTV session deployed `v0.4.0` and reported the marquee scrolling real camera alerts and a live recognition reaching the signed-in HTTPS page through its real proxy, so the socket fix holds there.
+- Released `v0.4.1` (`4891e0a`): PR #14 fixes the squeezed name. With one or two people, the single grid row took the full height, the portrait grew to about 729 px and the name fell to one letter per line. The grid now always has two rows, and the portrait and name are capped by width too. The card CSS was unchanged from `v0.3.0`, so this predates the marquee. All 16 landscape cases were clean in real headless Chrome.
+- Sent the CCTV session all three releases with their digests.
 
 In progress:
-- The CCTV stack still ran `v0.3.0` at the last check. The CCTV session pins the new release, then confirms in a signed-in browser that live rows arrive through its real proxy and session cookie, which this session could not test.
+- The CCTV session pins `v0.4.1` in its next release, then confirms a one-person card on the real page.
 
 Next:
 - After that confirmation, set `ROLLBACK.md`'s last known good release to what the stack runs. This replaces the first Next item below. The other items there still stand.
 
 Risks added:
 - Marquee limits are in D-013: a list change restarts the scroll, and a 5 second green chip may be only partly seen. It has not been run on real Raspberry Pi hardware.
+- On a 1080x1920 portrait screen the name column is 120 px, IDs wrap more, and the `Just now` tag wraps to two lines. Text stays inside the card. No portrait kiosk is known to exist.
+- One card sits top-left and leaves the rest of the screen empty. The owner saw this and approved it.
 
 ## Session: 2026-11-01 (model: Claude Opus 5.5, `claude-opus-5-5`)
 
