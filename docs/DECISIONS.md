@@ -2,6 +2,26 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-016: Spend fewer Actions minutes per PR and release
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner, who chose to ship it with D-015.
+Context: The three repos share one quota of 3,000 minutes a month, and on 2026-11-03 November had already used 2,331. GitHub bills each job rounded up to a whole minute. A PR run here was billed about 6 minutes for about 2 of work, and each release ran all of CI again before building its images. When the quota ran out on 2026-10-31, CI, merges and releases all stopped.
+Options: 1) fold lint, secrets and the gate into one job, and have the release test the image it ships instead of re-running CI 2) keep the jobs and add a build cache 3) change nothing.
+Chosen: 1, plus `test_partitions.py` in CI and in the release, run inside the amd64 image, and no QEMU setup on amd64.
+Why: It cuts a PR run from 5 billed jobs to 3 and drops the release's second copy of CI, and the release still tests the exact commit it ships. A cache was left out: GitHub does not share a PR's cache with other PRs, and pushing once per PR means a PR rarely reads its own, so only a cache written by releases would help, at the cost of upload time on every release.
+Trade-off: Lint and the secret scan now run after the image builds, so a lint failure shows later. The release no longer re-runs lint, gitleaks or the arm64 smoke test on the merged commit. Its amd64 checks import the app, and the PR already passed the rest.
+Revisit if: A merged commit ships something its PR's CI would have caught, or minutes stop being tight.
+
+## D-015: Show the person's name under the ID, from `/post_names`
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Decided by the owner, with the endpoint shape agreed with the CCTV session.
+Context: The Kafka message is the person's unique ID, such as an organisational ID, and people at a gate recognise a name faster.
+Options: 1) a separate `POST /post_names` on the image server 2) add names to the `/post_images` response 3) send names in the Kafka message.
+Chosen: 1. The ID stays the large text and the name goes under it. The display asks for names after the images, and any failure shows the ID alone.
+Why: Options 2 and 3 change contracts that older displays and CCTV releases read, so the two sides would have to upgrade together. A new endpoint lets either side upgrade first.
+Trade-off: A second request per message, so a hung name server costs up to another 5 seconds, although the faces show first. Names are new personal data on the screen. A long name is cut with an ellipsis, which is safe because the ID above tells people apart.
+Revisit if: The extra request slows a busy gate, or the CCTV side can return names with the images in a versioned response.
+
 ## D-014: Shrink a long name to one line, then wrap it after an underscore
 
 Date: 2026-11-02. Model: Claude Opus 5.5. Asked for by the owner through the CCTV session.

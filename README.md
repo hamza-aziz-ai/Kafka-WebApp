@@ -1,6 +1,6 @@
 # Kafka-WebApp
 
-Kafka-WebApp is the live display for the CCTV Face Recognition Attendance System. It reads recognition messages from Kafka, fetches each person's face image, and shows the latest person IDs and faces on a screen at the attendance point. When the system or the network is down, the screen says so.
+Kafka-WebApp is the live display for the CCTV Face Recognition Attendance System. It reads recognition messages from Kafka, fetches each person's face image, and shows the latest person IDs, names and faces on a screen at the attendance point. When the system or the network is down, the screen says so.
 
 ## Quick start
 
@@ -56,8 +56,8 @@ flowchart TD
 1. **Publish.** The CCTV system writes each recognised person's ID to the topic set by `KAFKA_TOPIC`, with the camera name as the key.
 2. **Read.** A background thread reads every camera at the entry point, because each camera has its own partition, or only those in `KAFKA_PARTITIONS`. It starts from the end of the topic, so a restart shows new recognitions and never replays old ones. It checks for newly added cameras every 60 seconds.
 3. **Queue.** The app keeps up to 4 distinct messages, newest first. Duplicates are dropped on purpose, so one person seen by several cameras shows once. A camera's `ERROR` or `SUCCESS` control message skips the queue and goes to the status strip instead (step 8).
-4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display.
-5. **Hold.** The result stays in memory only. This app does not write IDs or faces to disk.
+4. **Fetch images.** The queue goes to the display image server, which returns each person's face image, or a placeholder if it has none. The call times out after 5 seconds, so a hung server cannot freeze the display. Then the same server's `/post_names` returns each person's name, which shows in smaller text under the ID. Older CCTV releases have no `/post_names`, and the display then shows the ID alone.
+5. **Hold.** The result stays in memory only. This app does not write IDs, names or faces to disk.
 6. **Show.** The page asks for the current rows every 100 ms over Socket.IO and draws each person as a card, newest first. With nobody to show, it shows a face guide. The look matches the Face-Dataset-Collector app's light theme, and the font is bundled with the app.
 7. **Check health.** Every pass of the loop checks TCP ports, first the host, then each service in `PROJECT_SERVICES`, or in `PROJECT_SERVICES_PORT` if that is not set. It needs 10 failures in a row before it reacts, so a brief drop shows nothing.
 8. **Report status.** An outage puts a red panel on screen, and recovery puts a green one. A camera problem scrolls as an amber chip in a marquee along the bottom of the screen until that camera recovers, then as a green chip for 5 seconds. It never hides the rows, and any number of problems takes one line. After a services outage, the display waits 2 minutes for the system to finish starting before it reads Kafka again.
@@ -124,7 +124,7 @@ What exists and who owns it is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Known limitations
 
-- There is no auth on the page or socket, and any origin can connect, so anyone who can reach port 9090 can see person IDs and faces. Keep the port on a trusted network.
+- There is no auth on the page or socket, and any origin can connect, so anyone who can reach port 9090 can see person IDs, names and faces. Keep the port on a trusted network.
 - It runs on the Flask development server.
 - There are no behaviour tests yet. CI proves the image builds and starts, not that the display works.
 - Nothing alerts on failure. Problems show on the screen or in `logs/`.

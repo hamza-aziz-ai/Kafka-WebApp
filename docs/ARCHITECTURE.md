@@ -16,8 +16,8 @@ This system has no customers yet. It is being run through simulated real-world c
 | `templates/index.html` | The display page: layout and theme, polling, and how long each status stays on screen |
 | `static/fonts/` | Bundled IBM Plex Sans, under the licence in `OFL.txt`, so that a kiosk renders the same with no internet |
 | `Dockerfile` | The image: pinned base, non-root `app` user, TCP health check on port 9090 |
-| `test_partitions.py` | Broker-free checks of partition selection and the message queue. CI does not run it yet |
-| `.github/workflows/` | `ci.yml` (lint, secrets, image build and smoke test), `automerge.yml` (merge, branch delete, CCTV submodule dispatch), `release.yml` (version, images, tag, release) |
+| `test_partitions.py` | Broker-free checks of partition selection, the message queue, camera status, health checks, the Kafka login, the page and its fonts, and name lookup. CI and the release run it inside the amd64 image |
+| `.github/workflows/` | `ci.yml` (amd64 and arm64 image builds, smoke test and `test_partitions.py`, then one `ci` job for lint, secrets and the gate), `automerge.yml` (merge, branch delete, CCTV submodule dispatch), `release.yml` (version, amd64 build and checks, then images, tag, release) |
 
 ## Colour legend
 
@@ -73,10 +73,10 @@ On a central host, each client's display must point at its own image server thro
 ```mermaid
 flowchart TD
     A["`Pull request with a Conventional Commit title`"]:::person
-    B["`ci.yml: ruff, gitleaks, amd64 and arm64 image builds, smoke test`"]:::gh
+    B["`ci.yml: amd64 and arm64 image builds, smoke test, test_partitions.py, then ruff and gitleaks`"]:::gh
     C["`automerge.yml: squash merge, delete branch`"]:::gh
     D["`release.yml: choose version from merged titles`"]:::gh
-    E["`ci.yml again on the merged commit`"]:::gh
+    E["`release.yml: build amd64 from the merged commit, run test_partitions.py in it`"]:::gh
     F[("`ghcr.io/hamza-aziz-ai/kafka-webapp:<tag>`")]:::outside
     G["`Tag and GitHub release`"]:::gh
     H["`Operator runs the new tag on the display host`"]:::person
@@ -94,6 +94,7 @@ flowchart TD
 - **Versions.** `feat:` gives a minor release, `fix:` and `perf:` a patch, and `type!:` or a `BREAKING CHANGE` footer a major. Other titles, such as `docs:`, merge without a release.
 - **Images first.** Images are pushed before the tag exists, so a release is never published without them. Images only have version tags, so there is no `latest`.
 - **CCTV submodule.** The CCTV repo pins this repo as a submodule that follows `main`. After a merge, `automerge.yml` sends it a `submodule-main` dispatch using the `SUBMODULES_TOKEN` secret. The step is skipped while that secret is empty, and a failed call only warns. Direct `[skip ci]` pushes send nothing, and CCTV's daily run catches them.
+- **Actions minutes.** The three repos share one monthly quota, and GitHub bills each job rounded up to a whole minute. So quick checks share one job, a release tests the image it ships instead of re-running CI, and Markdown-only changes go straight to `main` with `[skip ci]` (D-016).
 - **Deploy.** Nothing deploys automatically. An operator runs the new tag on each display host.
 - **Watching.** There are no alerts or dashboards. The Docker health check only proves port 9090 accepts connections, so problems are found in `logs/` or on the screen itself.
 
@@ -133,6 +134,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Person message | Value is the plain person ID, not a name and not JSON. Key is the camera name, `<location>_<point>_<camera>`. Only recognised matches are sent, one per person per camera per batch |
 | Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts: every 30 seconds for an inaccessible camera, and on every evaluation for low light. `SUCCESS` is sent once per recovery. This app keeps these itself and does not post them to the image server |
 | `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}` |
+| `POST /post_names` | Same server and base path as `/post_images`, and the same request body. The response is a JSON object with every requested ID: `{"<id>": "<name>" or null}`, read from the client's persons table. Names are plain strings, shown with `textContent`. Older CCTV releases answer 404, and the display then shows the ID alone. Added by the owner's decision of 2026-11-03 (D-015) |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID, never an error, so an unknown ID cannot be told from a known one by shape |
 | Kafka login, from D-036, step 3c | `SASL_PLAINTEXT` with `SCRAM-SHA-512` on port 9092, as the `<client>_display` user, with Read and Describe on topics `<client>.*` and Read on groups `<client>.*`. `<topic>.display` fits the `<client>.` prefix. This app turns it on when `KAFKA_USERNAME` is set. `SASL_SSL` comes later through `KAFKA_SECURITY_PROTOCOL` |
 | Fonts | The CCTV proxy routes `/static/fonts/` to this app, and the CCTV sign-in page and its `/api/live` page (CCTV PR #102) load `ibm_plex_sans_regular.ttf` and `ibm_plex_sans_semibold.ttf` from there. Keep those paths and file names, or tell the CCTV side before changing them |

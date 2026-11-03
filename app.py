@@ -20,6 +20,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     CONFLUENT_KAFKA_GROUP, \
     DISPLAY_LIST_SIZE, \
     IMAGE_SERVER_ADDRESS, \
+    NAME_SERVER_ADDRESS, \
     STATUS_THRESHOLD, \
     SERVER_IP_ADDRESS, \
     HOST_CHECK_PORT, \
@@ -44,6 +45,7 @@ kafka_conf = {
 
 message_queue = []
 messages_to_display = []
+names_to_display = {}  # Person ID to name, for the IDs last sent to the name server. Memory only, never logged
 last_update_time = time.time()
 connection_failure_message_sent = False
 project_services_down_message_sent = False
@@ -78,6 +80,21 @@ def post_message_queue_and_get_images(data):
             feedback_client_logger.error(f"Image server error: {response.status_code}, {response.reason}")
     except Exception as e:
         feedback_client_logger.exception(f"Exception in image post: {e}")
+
+# Best effort, after the images, so a missing or failing name server never holds back a face
+def post_message_queue_and_get_names(data):
+    global names_to_display
+    try:
+        response = requests.post(NAME_SERVER_ADDRESS, json=data, timeout=IMAGE_SERVER_TIMEOUT)
+        if response.status_code == 404:  # An older CCTV release with no /post_names
+            names_to_display = {}
+            return
+        response.raise_for_status()
+        names = response.json()
+        names_to_display = {i: n for i, n in names.items() if isinstance(n, str) and n} if isinstance(names, dict) else {}
+    except Exception as e:
+        names_to_display = {}
+        feedback_client_logger.error(f"Name server error: {type(e).__name__}")  # Type only: the message could carry a name
 
 def assign_new_partitions(consumer):
     # Keep assign(), not subscribe(): displays share a group, and subscribe() would split the partitions between them
@@ -205,6 +222,7 @@ def _consume_messages():
                             # print(message_queue)
                             data = {"messages": message_queue}
                             post_message_queue_and_get_images(data)
+                            post_message_queue_and_get_names(data)
                             # message_queue.clear()
                             last_update_time = time.time()
                     except Exception as e:
@@ -266,11 +284,11 @@ watchdog_thread.start()
 
 @socketio.on('connect')
 def handle_connect():
-    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
+    emit('new_message', {'message': messages_to_display, 'names': names_to_display, 'camera_status': current_camera_status()})
 
 @socketio.on('check_updates')
 def handle_check_updates():
-    emit('new_message', {'message': messages_to_display, 'camera_status': current_camera_status()})
+    emit('new_message', {'message': messages_to_display, 'names': names_to_display, 'camera_status': current_camera_status()})
 
 @app.route('/')
 def index():

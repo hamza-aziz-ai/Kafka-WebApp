@@ -4,15 +4,14 @@ A change is done only when the checks below pass and their real output is pasted
 
 ## CI
 
-These run on every PR and on `main`, and again on the merged commit before a release. The `ci` job must pass for automerge.
+These run on every PR and on any push to `main` without `[skip ci]`. The `ci` job must pass for automerge. GitHub bills each job rounded up to a whole minute, and the account's minutes are shared across repos, so the quick checks share the `ci` job instead of each taking a job of their own.
 
 | Job | Proves | Pass looks like |
 |---|---|---|
-| `lint` | `ruff` with `E9,F63,F7,F82`: syntax errors and undefined names only | `All checks passed!` |
-| `secrets` | gitleaks finds no secrets in history | No leaks found |
-| `image` (amd64, arm64) | The image builds, `pip check` passes, and settings load from the environment | The smoke test exits 0 |
+| `image` (amd64, arm64) | The image builds, `pip check` passes, and settings load from the environment. On amd64, `test_partitions.py` also runs inside the image | The smoke test exits 0, and each check prints `PASS` |
+| `ci` | `ruff` with `E9,F63,F7,F82` (syntax errors and undefined names only), gitleaks finds no secrets in history, and both image jobs passed | `All checks passed!`, no leaks found, and the job passes |
 
-CI does not start the app or test its behaviour.
+A release does not run CI again. It builds the amd64 image of the merged commit, runs `pip check` and `test_partitions.py` in it, then pushes that build with arm64 added. CI does not start the app against real services.
 
 ## Local checks
 
@@ -24,7 +23,7 @@ Partition selection and the message queue:
 python test_partitions.py
 ```
 
-Each check prints `PASS`. CI does not run this file yet. `assign_new_partitions` was also run against a private `cp-kafka` broker: reading every partition, `KAFKA_PARTITIONS`, two displays in one group, and a partition added while running. The login was run against a private SCRAM broker too: the right password reads, and a wrong password or no login is refused. Never run such a test against a live broker.
+Each check prints `PASS`. CI and the release run this file inside the amd64 image. `assign_new_partitions` was also run against a private `cp-kafka` broker: reading every partition, `KAFKA_PARTITIONS`, two displays in one group, and a partition added while running. The login was run against a private SCRAM broker too: the right password reads, and a wrong password or no login is refused. Never run such a test against a live broker.
 
 Settings:
 
@@ -67,7 +66,7 @@ There is no automated end-to-end test, so walk this by hand against a CCTV host 
 
 1. Start the app with `IP_ADDRESS` set, and open `http://<host>:9090`.
 2. Stand in front of each camera at the point in turn. Your person ID and face appear for each, and they clear after about 15 seconds of no activity.
-3. Show one person, then four, including a long ID with underscores, such as `maingate_visitor_0000123456789_01`. The portrait stays small and the name stays beside it. A short name such as `hamza_aziz` stays on one line, shrinking if it must, and a long one breaks only after an underscore.
+3. Show one person, then four, including a long ID with underscores, such as `maingate_visitor_0000123456789_01`. The portrait stays small and the name stays beside it. A short name such as `hamza_aziz` stays on one line, shrinking if it must, and a long one breaks only after an underscore. A person registered with a name shows it in smaller text under the ID, and a person without one shows the ID alone.
 4. Block one camera. An amber chip for it scrolls along the bottom of the screen and stays, while the other cameras' cards keep working. Restore it, and a green chip shows for 5 seconds.
 5. Stop one service on the CCTV host. A red `Temporarily Down` panel appears.
 6. Start it again. A green `Getting Started` panel with a progress bar shows for 2 minutes, and recognition then resumes.

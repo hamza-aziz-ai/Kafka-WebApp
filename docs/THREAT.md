@@ -1,6 +1,6 @@
 # THREAT: who could abuse it and what stops them
 
-Checked against the same code as [FLOW.md](FLOW.md). This system has no customers yet, and these are the threats to rehearse before it does. The display shows personal data: person IDs, such as employee IDs, and face images.
+Checked against the same code as [FLOW.md](FLOW.md). This system has no customers yet, and these are the threats to rehearse before it does. The display shows personal data: person IDs, such as employee IDs, face images, and names from `/post_names`.
 
 | Actor | Can reach | Worst realistic abuse | What stops it today | Gap |
 |---|---|---|---|---|

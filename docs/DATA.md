@@ -22,6 +22,14 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 - **Why whole-list replacement:** the browser redraws everything, so there is no diffing to get wrong. The cost is that every poll resends every image, about 10 times a second per screen.
 - **Concurrency:** there is no lock. A replacement swaps the reference, so a reader sees the old or new list, never a mix. The `clear()` paths mutate in place, and a reader can at worst see an empty list a moment early.
 
+## `names_to_display`
+
+- **Shape:** a dict from person ID to name, from `POST /post_names`. IDs with a null or empty name are left out.
+- **Size:** at most 4 entries, the IDs in the last request.
+- **Written by:** the consumer thread, which replaces it after each image request, and empties it on any name server error.
+- **Read by:** the Socket.IO handlers, sent as `names` with every poll.
+- **Privacy:** names are personal data. They stay in memory and are never logged, here or on the CCTV side.
+
 ## `camera_status`
 
 - **Shape:** a dict from camera to `{level, text, expires}`. `expires` is empty for an `ERROR`, and 5 seconds ahead for a `SUCCESS`.
