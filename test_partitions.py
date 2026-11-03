@@ -175,8 +175,45 @@ def check_kafka_login():
     assert app.kafka_conf["security.protocol"] == "PLAINTEXT"
 
 
+def check_names():
+    class Reply:
+        def __init__(self, status, body=None):
+            self.status_code, self.body = status, body
+
+        def json(self):
+            if isinstance(self.body, Exception):
+                raise self.body
+            return self.body
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise app.requests.HTTPError(str(self.status_code))
+
+    urls = []
+
+    def names_for(reply):
+        def post(url, json, timeout):
+            urls.append(url)
+            if isinstance(reply, Exception):
+                raise reply
+            return reply
+        original = app.requests.post
+        app.requests.post, app.names_to_display = post, {"stale": "x"}
+        try:
+            app.post_message_queue_and_get_names({"messages": ["a", "b", "c"]})
+        finally:
+            app.requests.post = original
+        return app.names_to_display
+
+    assert names_for(Reply(200, {"a": "Ann Lee", "b": None, "c": ""})) == {"a": "Ann Lee"}
+    # An older CCTV release (404), a failing server, a bad body or a hang all leave the ID alone on screen
+    for bad in (Reply(404), Reply(500), Reply(200, ["a"]), Reply(200, {"a": 5}), Reply(200, ValueError("bad")), app.requests.Timeout("t")):
+        assert names_for(bad) == {}, bad
+    assert set(urls) == {parameters.NAME_SERVER_ADDRESS} and parameters.NAME_SERVER_ADDRESS.endswith(":20013/post_names"), urls
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

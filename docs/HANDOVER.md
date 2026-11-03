@@ -2,7 +2,23 @@
 
 Read this first and update it last, every session. Newest entry goes on top. Then read [CONSTRAINTS.md](CONSTRAINTS.md).
 
-## Latest session: 2026-11-02 (model: Claude Opus 5.5, `claude-opus-5-5`)
+## Latest session: 2026-11-03 (model: Claude Opus 5.5, `claude-opus-5-5`)
+
+Done:
+- `v0.4.2` is the last known good release, approved by the owner after the CCTV session checked long names on the owner's display.
+- Recorded in the contract with CCTV that its sign-in and `/api/live` pages load our `static/fonts/` files, and `test_partitions.py` checks that those files are served.
+- The owner decided the display shows the person's name under the ID (D-015). CCTV added `POST /post_names` in its PR #104, for its `v2.12.0` release. This side is built and tested: 8 stub cases, plus real headless Chrome at 2000x1125, 1920x1080, 1024x600 and 1080x1920 with 1 to 4 cards.
+- New owner rule: save Actions minutes across all three repos (D-016). CI now bills 3 jobs per PR instead of 5, and a release tests the amd64 image it ships instead of running CI again. `test_partitions.py` now runs in CI. Checked locally with actionlint, and by building the image and running both CI steps in it. The owner chose to ship the names feature and these CI changes in one `feat:` PR.
+
+Next:
+- After that PR merges, check that the new `release.yml` publishes `v0.5.0`, and that the `automerge` run sends the CCTV dispatch without a warning. It is the first merge since `SUBMODULES_TOKEN` was saved.
+- Send the CCTV session the `v0.5.0` digest, wait for its live report with real names, then set `ROLLBACK.md`'s last known good to `v0.5.0`.
+
+Risks added:
+- A hung name server adds up to 5 seconds per message to the consumer loop, although the faces show first. Names are new personal data on a page with no auth. CCTV publishes 9090 on 127.0.0.1 behind its sign-in proxy (CCTV D-040), and a Raspberry Pi display is the open case.
+- The release no longer re-runs lint, gitleaks or the arm64 smoke test on the merged commit (D-016).
+
+## Session: 2026-11-02 (model: Claude Opus 5.5, `claude-opus-5-5`)
 
 Done:
 - Released `v0.3.1` (`95692b4`): PR #12 makes the page connect its socket to its own origin. The page hardcoded `http://`, so behind the CCTV stack's HTTPS proxy the browser blocked the socket and the display got no live updates. Tested in real headless Chrome over plain HTTP and through a throwaway Caddy proxy.

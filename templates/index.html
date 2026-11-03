@@ -214,6 +214,15 @@
             overflow-wrap: anywhere; /* Breaks after an underscore first, mid-word only if one part still does not fit */
         }
 
+        .person-name {
+            font-size: min(3.6vh, 2.2vw);
+            font-weight: 500;
+            color: var(--ink-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* The ID above tells people apart, so a cut name hides nothing that matters */
+        }
+
         .person-tag {
             font-size: 2.4vh;
             font-weight: 500;
@@ -334,6 +343,7 @@
         let successMessage = ''; // Store the current success message
         let isErrorPersisted = false; // Flag to check if error message should persist
         let isSuccessPersisted = false; // Flag to check if success message should persist
+        let names = {}; // Person ID to name; an ID with no name shows alone
         let drawnContent = null; // The server repeats itself every 100 ms: redraw only on a change, or the progress bar restarts
         let drawnStatus = null; // The same goes for the marquee
 
@@ -394,6 +404,9 @@
                 image.alt = '';
                 const text = element('div', 'person-text');
                 text.appendChild(element('div', 'person-id', personId.replaceAll('_', '_\u200B'))); // Zero-width space: a break point after each underscore, not <wbr>, which Chrome breaks at even under nowrap
+                if (names[personId]) {
+                    text.appendChild(element('div', 'person-name', names[personId]));
+                }
                 text.appendChild(element('div', 'person-tag', index === 0 ? 'Just now' : 'Recognised'));
                 card.appendChild(image);
                 card.appendChild(text);
@@ -436,7 +449,7 @@
             } else if (isSuccessPersisted) {
                 draw('success' + successMessage, () => drawNotice('success', successMessage));
             } else if (rows.length > 0) {
-                draw(JSON.stringify(rows), () => drawPeople(rows));
+                draw(JSON.stringify([rows, names]), () => drawPeople(rows));
             } else {
                 draw('idle', drawIdle);
             }
@@ -469,6 +482,7 @@
                 errorMessage = ''; // Clear error message if valid data is received
             }
 
+            names = data.names || {}; // Older servers send none
             updateContent(data.message);
             lastUpdate = Date.now(); // Update the last update time
         });

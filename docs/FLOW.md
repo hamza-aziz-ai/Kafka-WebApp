@@ -33,14 +33,15 @@ flowchart TD
     E["`**5** POST queue to the image server`"]:::step
     F[("`Display-image server`")]:::store
     G["`**6** Replace messages_to_display`"]:::step
-    H["`**7** Browser shows person IDs and faces`"]:::outcome
+    N["`**7** POST queue for names: best effort, failure shows IDs alone`"]:::step
+    H["`**8** Browser shows person IDs, names and faces`"]:::outcome
     I["`Clear message_queue and log`"]:::err
     J["`Keep the old display and log`"]:::err
 
     A --> B --> C
     C -->|person ID| D --> E --> F
     C -->|control message| K
-    F -->|200| G --> H
+    F -->|200| G --> N --> H
     F -->|not 200, or timeout after 5 s| J
     C -->|Kafka error| I
     C -->|nothing| B
@@ -59,7 +60,8 @@ flowchart TD
 4. **Queue.** A message starting with `ERROR ` or `SUCCESS ` is a control message. The CCTV producer sends these for camera lighting and stream problems, on that camera's own partition. It skips the queue, is not sent to the image server, and does not reset the idle timer: `update_camera_status` stores it in `camera_status` by camera, so that it can never hide a person row. An `ERROR` stays until that camera's `SUCCESS` arrives, and a `SUCCESS` shows for `CAMERA_SUCCESS_SECONDS` (5). Any other message is added at the front if it is not already there, and the oldest is dropped once the queue holds `DISPLAY_LIST_SIZE` (4). Dropping duplicates is intended, so one person seen by several cameras or frames shows once.
 5. **Ask for images.** `post_message_queue_and_get_images` posts `{"messages": message_queue}` to `IMAGE_SERVER_ADDRESS`. It uses `json=`, because FastAPI answers 422 without that `Content-Type`, and a 5 second `IMAGE_SERVER_TIMEOUT`, so a hung server cannot freeze this thread.
 6. **Store.** On 200, the response body replaces `messages_to_display`: a list in request order with one single-key object per message. An unknown ID or missing image comes back as a placeholder JPEG under the ID, so it looks like any other row. On any other status or an exception, the old value stays and the problem is logged. `last_update_time` is set in both cases.
-7. **Show.** The display picks up the new value on its next poll, which is flow F3.
+7. **Ask for names.** `post_message_queue_and_get_names` then posts the same body to `NAME_SERVER_ADDRESS`, which is `IMAGE_SERVER_ADDRESS` with the last path segment changed to `/post_names`. A JSON object of ID to name replaces `names_to_display`, keeping only non-empty strings. A 404 from an older CCTV release, any other error, or a bad body empties it, so the page shows IDs alone and the faces are never held back. Errors log only their type, because a message could carry a name. See D-015.
+8. **Show.** The display picks up the new value on its next poll, which is flow F3.
 
 ## F2. Health checks, outages and recovery
 
@@ -151,7 +153,7 @@ sequenceDiagram
 
 1. **Load.** `index` renders `templates/index.html`. The page loads `socket.io.js` from `cdnjs.cloudflare.com`, so a kiosk with no internet gets no live updates.
 2. **Connect.** The page connects to its own origin, so the same page works over plain HTTP and behind an HTTPS proxy. `handle_connect` sends the current value straight away.
-3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page scrolls as amber and green chips in a one-line marquee at the bottom of the screen, redrawing only when the list changes so the scroll does not restart. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
+3. **Poll.** `handle_check_updates` answers every 100 ms with the whole of `messages_to_display`, including base64 images, plus `camera_status`, which the page scrolls as amber and green chips in a one-line marquee at the bottom of the screen, redrawing only when the list changes so the scroll does not restart. It also carries `names`, and the page shows a person's name in smaller text under the ID, cut with an ellipsis if it is too long, or the ID alone when there is no name. Each reply resets the page's own 15 second inactivity timer, so that timer only fires if the socket stops answering.
 4. **Push.** Status messages use `socketio.emit` once and are not stored in `messages_to_display`, so a page that loads after the push does not see them.
 5. **Error.** An ERROR fills the content area as a red panel until a SUCCESS or normal rows arrive.
 6. **Success.** A SUCCESS fills the content area as a green panel for 5 seconds, or for 2 minutes with a progress bar for the `Getting Started` text.

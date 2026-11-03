@@ -77,6 +77,8 @@ STATUS_THRESHOLD = 15
 # Image Server Address
 # Overridable because on a central host each client's image server has its own port; a fixed :20013 would show another client's faces
 IMAGE_SERVER_ADDRESS = os.getenv("IMAGE_SERVER_ADDRESS", f"http://{SERVER_IP_ADDRESS}:20013/post_images")
+# Names come from the same server; older CCTV releases answer 404, and the page then shows the ID alone
+NAME_SERVER_ADDRESS = IMAGE_SERVER_ADDRESS.rsplit("/", 1)[0] + "/post_names"
 
 # Seconds a camera's SUCCESS text stays in the status strip
 CAMERA_SUCCESS_SECONDS = 5
