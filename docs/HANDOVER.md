@@ -11,7 +11,7 @@ Done:
 - New owner rule: save Actions minutes across all three repos (D-016). CI now bills 3 jobs per PR instead of 5, and a release tests the amd64 image it ships instead of running CI again. `test_partitions.py` now runs in CI. Checked locally with actionlint, and by building the image and running both CI steps in it. The owner chose to ship the names feature and these CI changes in one `feat:` PR.
 
 Next:
-- After that PR merges, check that the new `release.yml` publishes `v0.5.0`, and that the `automerge` run sends the CCTV dispatch without a warning. It is the first merge since `SUBMODULES_TOKEN` was saved.
+- Done: PR #17 merged on its first CI run, which billed 3 jobs. The new `release.yml` published `v0.5.0` (digest `sha256:e2bee2a5...`, amd64 and arm64), with jobs billed about 4 minutes instead of about 11. The `automerge` run sent the CCTV dispatch without a warning, and CCTV's `submodules` run passed.
 - Send the CCTV session the `v0.5.0` digest, wait for its live report with real names, then set `ROLLBACK.md`'s last known good to `v0.5.0`.
 
 Risks added:
