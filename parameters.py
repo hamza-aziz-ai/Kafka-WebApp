@@ -83,6 +83,10 @@ NAME_SERVER_ADDRESS = IMAGE_SERVER_ADDRESS.rsplit("/", 1)[0] + "/post_names"
 # Seconds a camera's SUCCESS text stays in the status strip
 CAMERA_SUCCESS_SECONDS = 5
 
+# Seconds a camera's ERROR stays without a repeat. The producer repeats it while the problem lasts, about every 21 seconds for an
+# inaccessible camera, so this renews before it runs out, and a chip whose SUCCESS was missed, as during an outage, drops off
+CAMERA_ERROR_SECONDS = 60
+
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
 

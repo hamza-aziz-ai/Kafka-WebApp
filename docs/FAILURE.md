@@ -14,7 +14,7 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 | Settings | `KAFKA_PARTITIONS` names a partition that does not exist | A warning is logged at every check, and it is picked up when it appears | Log only |
 | Settings | `IP_ADDRESS` not set | The default `127.0.0.1` is used. In a container that is the container itself, so a red `Network Issue` panel shows | On screen, in the log |
 | Settings | `KAFKA_PARTITIONS` is not whole numbers | The app stops at startup with a clear error | The container exits |
-| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS` | On screen, in the strip |
+| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS`, or 60 seconds after the last repeat | On screen, in the strip |
 | Camera | Added while running | Its partition is picked up within 60 seconds, and anything it sent before then is not shown | Log: `Reading <topic> partitions [...]` |
 | Image server | Unknown person ID or missing image | A placeholder JPEG, or a coloured silhouette once the server sends `null`, shows under the ID, with no error | A person spotting the placeholder |
 | Image server | Hung, port open | Each message waits 5 seconds, then the update is dropped. The screen keeps the last rows, and the consumer falls behind | Log only |
@@ -39,8 +39,8 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 - Anything published during a services outage or the 2 minute restart wait is never shown, because the consumer is rebuilt at `OFFSET_END`.
 - A listed port that never opens stops the display for good: no consumer is created until every entry answers, so the screen stays on the red panel. A display in the CCTV stack hit this with 19001.
 - `PROJECT_SERVICES` entries that use a service name need DNS. A name that does not resolve counts as down, and a slow lookup slows every pass, because the 0.5 second timeout does not cover it.
-- Camera status lines are lost on a display restart or a rebuilt consumer, and they return with the next `ERROR`: within 30 seconds for an inaccessible camera, and at the next evaluation for low light.
-- A `SUCCESS` missed during an outage is harmless, because the rebuilt consumer empties the strip and only a live problem re-sends `ERROR`.
+- Camera status lines are lost on a display restart, and return with the next `ERROR`. Through an outage they are kept and hidden, and they return the moment the restart wait ends. Simulated on 2026-11-03: both chips returned with the rows, and a camera that stopped repeating dropped off 59 seconds later. The 60 seconds assume the producer repeats a low-light `ERROR` at least that often.
+- A `SUCCESS` missed during an outage leaves its amber chip for up to 60 seconds after the wait, until it drops off unrepeated.
 - A page that loads during an outage showed the idle face guide before `v0.7.3`, because statuses were pushed once and not stored. The owner hit this during a CCTV deploy on 2026-11-03. From `v0.7.3` the server keeps the status in force and sends it to every page that connects. A page that loads during the 2 minute restart wait shows the full 2 minute bar from when it loaded.
 - After a Kafka reconnect, messages published during the gap are never shown, because the new consumer starts at `OFFSET_END`.
 - `ping_server` never closes its sockets and relies on the garbage collector. CPython reclaims them at once, but watch the file handle count on a long run.

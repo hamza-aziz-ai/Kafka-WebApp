@@ -32,9 +32,9 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 
 ## `camera_status`
 
-- **Shape:** a dict from camera to `{level, text, expires}`. `expires` is empty for an `ERROR`, and 5 seconds ahead for a `SUCCESS`.
+- **Shape:** a dict from camera to `{level, text, expires}`. `expires` is 60 seconds ahead for an `ERROR`, renewed by each repeat, and 5 seconds ahead for a `SUCCESS`.
 - **Size:** one entry per camera at the entry point.
-- **Written by:** the consumer thread, in `update_camera_status`. It is emptied when a new consumer is created.
+- **Written by:** the consumer thread, in `update_camera_status`. It is kept through an outage, and a new consumer gives each `ERROR` a fresh 60 seconds.
 - **Read by:** the Socket.IO handlers, once every 100 ms per open page, through `current_camera_status`, which skips expired entries.
 - **Why a dict:** the latest state per camera is the whole need. A new message for a camera replaces the old one, so a repeated `ERROR` does not add lines.
 - **Concurrency:** no lock. The reader copies the items with `list()` before sorting, so a write during a read cannot raise.
