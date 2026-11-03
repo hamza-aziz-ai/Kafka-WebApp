@@ -17,7 +17,7 @@ This system has no customers yet. It is being run through simulated real-world c
 | `static/fonts/` | Bundled IBM Plex Sans, under the licence in `OFL.txt`, so that a kiosk renders the same with no internet |
 | `Dockerfile` | The image: pinned base, non-root `app` user, TCP health check on port 9090 |
 | `test_partitions.py` | Broker-free checks of partition selection and the message queue. CI does not run it yet |
-| `.github/workflows/` | `ci.yml` (lint, secrets, image build and smoke test), `automerge.yml` (merge and branch delete), `release.yml` (version, images, tag, release) |
+| `.github/workflows/` | `ci.yml` (lint, secrets, image build and smoke test), `automerge.yml` (merge, branch delete, CCTV submodule dispatch), `release.yml` (version, images, tag, release) |
 
 ## Colour legend
 
@@ -93,6 +93,7 @@ flowchart TD
 - **Merge gate.** Green CI on the latest commit of a non-draft PR from this repo is the only gate. `automerge.yml` skips drafts and forks, and it runs from `main`, so a PR cannot rewrite the rule that merges it.
 - **Versions.** `feat:` gives a minor release, `fix:` and `perf:` a patch, and `type!:` or a `BREAKING CHANGE` footer a major. Other titles, such as `docs:`, merge without a release.
 - **Images first.** Images are pushed before the tag exists, so a release is never published without them. Images only have version tags, so there is no `latest`.
+- **CCTV submodule.** The CCTV repo pins this repo as a submodule that follows `main`. After a merge, `automerge.yml` sends it a `submodule-main` dispatch using the `SUBMODULES_TOKEN` secret. The step is skipped while that secret is empty, and a failed call only warns. Direct `[skip ci]` pushes send nothing, and CCTV's daily run catches them.
 - **Deploy.** Nothing deploys automatically. An operator runs the new tag on each display host.
 - **Watching.** There are no alerts or dashboards. The Docker health check only proves port 9090 accepts connections, so problems are found in `logs/` or on the screen itself.
 
