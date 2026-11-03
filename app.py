@@ -15,6 +15,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     KAFKA_PARTITIONS, \
     KAFKA_PARTITION_CHECK_INTERVAL, \
     CAMERA_SUCCESS_SECONDS, \
+    CAMERA_ERROR_SECONDS, \
     DISPLAY_LOCATION, \
     KAFKA_SECURITY_CONF, \
     CONFLUENT_KAFKA_GROUP, \
@@ -145,17 +146,18 @@ def update_message_queue(message):
         message_queue.insert(0, message)
 
 def update_camera_status(message):
-    # Format: ERROR <camera>: <text>. Kept apart from the rows, so a camera error stays until cleared and hides no person
+    # Format: ERROR <camera>: <text>. Kept apart from the rows, so a camera error hides no person. It lasts while the producer
+    # repeats it, so it survives an outage and returns when the restart wait ends
     level, _, rest = message.partition(" ")
     camera, _, text = rest.partition(": ")
-    expires = None if level == "ERROR" else time.time() + CAMERA_SUCCESS_SECONDS
+    expires = time.time() + (CAMERA_ERROR_SECONDS if level == "ERROR" else CAMERA_SUCCESS_SECONDS)
     camera_status[camera] = {"level": level, "text": text or rest, "expires": expires}
 
 def current_camera_status():
     now = time.time()
     return [{"level": status["level"], "text": status["text"]}
             for _, status in sorted(list(camera_status.items()), key=lambda item: item[0])
-            if status["expires"] is None or status["expires"] > now]
+            if status["expires"] > now]
 
 def _consume_messages():
     global message_queue, last_update_time, messages_to_display
@@ -201,8 +203,11 @@ def _consume_messages():
                     try:
                         kafka_consumer = Consumer(kafka_conf)
                         assigned_partitions.clear()
-                        # A new consumer starts at OFFSET_END and may have missed a SUCCESS; the producer re-sends ERROR while it lasts
-                        camera_status.clear()
+                        # Nothing was read while the consumer was gone, so no ERROR could be repeated: give each camera error a
+                        # fresh life, so the chips return now and any whose camera recovered in the meantime drop off unrepeated
+                        for status in camera_status.values():
+                            if status["level"] == "ERROR":
+                                status["expires"] = time.time() + CAMERA_ERROR_SECONDS
                         next_partition_check = 0
                         feedback_client_logger.info("Created a fresh Kafka consumer")
                         if display_status and display_status["level"] == "INFO":

@@ -95,6 +95,20 @@ def check_camera_status():
     app.update_camera_status("ERROR gate_a_cam3")
     assert app.current_camera_status() == [{"level": "ERROR", "text": "gate_a_cam3"}]
 
+    # An ERROR lasts while the producer repeats it, and drops off when it stops, as when its SUCCESS was missed in an outage
+    original = app.CAMERA_ERROR_SECONDS
+    app.CAMERA_ERROR_SECONDS = 0.3
+    try:
+        app.update_camera_status("ERROR gate_a_cam4: Camera stream from gate_a_cam4 is not accessible.")
+        time.sleep(0.2)
+        app.update_camera_status("ERROR gate_a_cam4: Camera stream from gate_a_cam4 is not accessible.")
+        time.sleep(0.2)
+        assert any(s["text"].startswith("Camera stream from gate_a_cam4") for s in app.current_camera_status()), "a repeat must renew it"
+        time.sleep(0.2)
+        assert not any(s["text"].startswith("Camera stream from gate_a_cam4") for s in app.current_camera_status()), "it must drop off"
+    finally:
+        app.CAMERA_ERROR_SECONDS = original
+
 
 def check_startup_rejects_bad_value():
     env = {**os.environ, "KAFKA_PARTITIONS": "0,x"}

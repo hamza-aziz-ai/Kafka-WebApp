@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-020: Keep camera chips through an outage, with a 60 second life each repeat renews
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Chosen by the owner.
+Context: The consumer emptied `camera_status` when it was rebuilt, so after an outage the chips came back only with each camera's next `ERROR`, about 2 to 2.5 minutes after the restart. The CCTV session measured repeats about every 21 seconds.
+Options: 1) keep the chips, give each `ERROR` a 60 second life that each repeat renews, and renew them all when the consumer returns 2) keep them with no expiry 3) keep emptying them.
+Chosen: 1.
+Why: The chips return the moment the wait ends. Option 2 would leave a camera that recovered during the outage amber forever, because its `SUCCESS` was never read.
+Trade-off: A recovery missed in an outage shows amber for up to 60 seconds. A camera whose `ERROR` repeats less than once a minute would flicker off between repeats, so `CAMERA_ERROR_SECONDS` must stay above the producer's slowest repeat.
+Revisit if: The producer's repeat interval for low light turns out longer than 60 seconds.
+
 ## D-019: The page mirrors the server's screen, and refreshing never loses a status
 
 Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner, who saw `Ready for the next person` after refreshing during a CCTV deploy, and then for a moment on load.
@@ -131,7 +141,7 @@ Context: With every camera on one display, one camera's `ERROR` in the queue hid
 Options: 1) a per-camera strip, separate from the rows 2) clear the error on the next person 3) keep the error in the queue.
 Chosen: 1, under the header, above the person cards, because four rows fill the main area and a strip under them overlapped the last row.
 Why: Person rows and camera health stop competing for the same space, and an error stays until that camera recovers.
-Trade-off: The strip is in memory and is emptied when the consumer is rebuilt, so it relies on the producer re-sending `ERROR`, which the CCTV side confirmed it does. More than about 3 lines at once run into the banner below.
+Trade-off: The strip is in memory, and since D-020 each `ERROR` lasts 60 seconds unless the producer repeats it, which the CCTV side confirmed it does. More than about 3 lines at once run into the banner below.
 Revisit if: The producer stops re-sending, or a point has enough cameras to fill the strip.
 
 ## D-006: Read every partition by default, with `KAFKA_PARTITIONS` to narrow it
