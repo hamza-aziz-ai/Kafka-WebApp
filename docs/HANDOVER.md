@@ -17,7 +17,7 @@ Done:
 
 Next:
 - The first Next item below is done. The other items there still stand.
-- Get the CCTV session's report of `v0.4.2` on the live screen, then set `ROLLBACK.md`'s last known good to `v0.4.2`.
+- Done 2026-11-03: CCTV `v2.9.3` runs `v0.4.2` on the laptop. The CCTV session checked dummy long names on the owner's display, and the owner approved `v0.4.2` as last known good, so `ROLLBACK.md` now says `v0.4.2`.
 - On the next merge, check that the `automerge` run sends the CCTV dispatch without a warning.
 
 Risks added:
