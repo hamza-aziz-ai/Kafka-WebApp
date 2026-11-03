@@ -10,11 +10,16 @@ Done:
 - The owner decided the display shows the person's name under the ID (D-015). CCTV added `POST /post_names` in its PR #104, for its `v2.12.0` release. This side is built and tested: 8 stub cases, plus real headless Chrome at 2000x1125, 1920x1080, 1024x600 and 1080x1920 with 1 to 4 cards.
 - New owner rule: save Actions minutes across all three repos (D-016). CI now bills 3 jobs per PR instead of 5, and a release tests the amd64 image it ships instead of running CI again. `test_partitions.py` now runs in CI. Checked locally with actionlint, and by building the image and running both CI steps in it. The owner chose to ship the names feature and these CI changes in one `feat:` PR.
 
-Next:
-- Done: PR #17 merged on its first CI run, which billed 3 jobs. The new `release.yml` published `v0.5.0` (digest `sha256:e2bee2a5...`, amd64 and arm64), with jobs billed about 4 minutes instead of about 11. The `automerge` run sent the CCTV dispatch without a warning, and CCTV's `submodules` run passed.
+- PR #17 merged on its first CI run, which billed 3 jobs. The new `release.yml` published `v0.5.0` (digest `sha256:e2bee2a5...`, amd64 and arm64), with jobs billed about 4 minutes instead of about 11. The `automerge` run sent the CCTV dispatch without a warning, and CCTV's `submodules` run passed.
 - The owner chose coloured silhouettes for a missing photo, drawn by the display (D-017), and asked for names to wrap to two lines before the ellipsis. Built, and checked in real headless Chrome at 4 screen sizes with 1 to 4 cards. The CCTV side sends `null` only after this release is deployed.
 - The owner asked for cards to move clockwise with a quick glide (D-018). Built and checked with continuous dummy data from a private Kafka broker, a stub server and a producer.
-- Send the CCTV session the `v0.5.0` digest, wait for its live report with real names, then set `ROLLBACK.md`'s last known good to `v0.5.0`.
+- Released `v0.6.0` (PR #18): coloured silhouettes for a missing photo (D-017) and names on two lines, and `v0.7.0` (PR #19): clockwise cards with a 0.3 s glide (D-018) and a fix for a name left 3 px too wide. Both merged on their first CI run.
+- CCTV `v2.13.0` runs `v0.6.0`. The CCTV session reported the data path live: `/post_images` and `/post_names` both answer 200, and the container logged no errors. Nobody has looked at the screen yet.
+- Ran the `FAILURE.md` simulation on a private stack and recorded the results there. It found one bug: a listed service that refuses connections makes the consumer loop spin at full CPU with no pause, which also defeats the 10-failure debounce and floods Kafka with connections.
+
+Next:
+- Fix the consumer loop busy-spin with a short sleep on a failed check, as a `fix:` release. Needs the owner's approval.
+- The owner decides whether CCTV's data-path report is enough to make `v0.6.0` last known good, or checks the screen first. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
 
 Risks added:
 - A hung name server adds up to 5 seconds per message to the consumer loop, although the faces show first. Names are new personal data on a page with no auth. CCTV publishes 9090 on 127.0.0.1 behind its sign-in proxy (CCTV D-040), and a Raspberry Pi display is the open case.
