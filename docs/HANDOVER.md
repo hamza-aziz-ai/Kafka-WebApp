@@ -13,10 +13,12 @@ Done:
 - The CCTV session deployed `v0.4.1` in CCTV `v2.9.1` and reported a live recognition on the signed-in HTTPS page: one person, about 315 px portrait, the name on one line, clear of the header and marquee. `ROLLBACK.md`'s last known good is now `v0.4.1`.
 - Released `v0.4.2` (`0e6623a`): PR #15, which the owner asked for through the CCTV session, stops a name breaking mid-word, such as `hamza_aziz` showing as "hamza_azi" and "z". The page shrinks each name to fit one line, down to half size, then wraps only after an underscore (D-014). Tested in real headless Chrome at 2000x1125, 1920x1080, 1024x600 and 1080x1920 with 1 to 4 cards, before and after release. Sent the CCTV session the tag and digest `sha256:a5864d54...`.
 - Fixed `ROLLBACK.md` after a code review: its `docker run` set only `IP_ADDRESS`, which would drop the Kafka login, topic and image server. It now carries the old container's variables over and says the CCTV stack rolls back by changing its compose pin.
+- Merged PR #16 (`e8b6d97`, `ci:`, no release), which the owner asked for through the CCTV session: after each merge, `automerge.yml` sends the CCTV repo a `submodule-main` dispatch so its submodule pin follows `main`. The owner has saved `SUBMODULES_TOKEN`. PR #16's own merge ran the older `automerge.yml`, so the next merge is the first to send it.
 
 Next:
 - The first Next item below is done. The other items there still stand.
 - Get the CCTV session's report of `v0.4.2` on the live screen, then set `ROLLBACK.md`'s last known good to `v0.4.2`.
+- On the next merge, check that the `automerge` run sends the CCTV dispatch without a warning.
 
 Risks added:
 - Marquee limits are in D-013: a list change restarts the scroll, and a 5 second green chip may be only partly seen. It has not been run on real Raspberry Pi hardware.
