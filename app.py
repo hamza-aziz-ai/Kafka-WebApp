@@ -46,7 +46,7 @@ kafka_conf = {
 
 message_queue = []
 messages_to_display = []
-names_to_display = {}  # Person ID to name, for the IDs last sent to the name server. Memory only, never logged
+names_to_display = {}  # Person ID to name, for the IDs last sent to the name server. Memory only, never logged, and cleared with the rows
 last_update_time = time.time()
 connection_failure_message_sent = False
 project_services_down_message_sent = False
@@ -152,6 +152,7 @@ def _consume_messages():
             if not successful_reconnection_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
+                names_to_display.clear()
                 socketio.emit('new_message', {'message': [{'SUCCESS': "Network Reconnection Successful"}]})
                 successful_reconnection_message_sent = True
                 connection_failure_message_sent = False
@@ -162,6 +163,7 @@ def _consume_messages():
                 if not project_restart_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
+                    names_to_display.clear()
                     socketio.emit('new_message', {'message': [{'SUCCESS': "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes"}]})
                     feedback_client_logger.info("Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes")
                     time.sleep(2 * 60)
@@ -233,6 +235,7 @@ def _consume_messages():
                 if services_ping_fail >= NETWORK_FAIL_CHECK and not project_services_down_message_sent:
                     message_queue.clear()
                     messages_to_display.clear()
+                    names_to_display.clear()
                     socketio.emit('new_message', {'message': [{'ERROR': "Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue"}]})
                     project_services_down_message_sent = True
                     project_restart_message_sent = False
@@ -245,6 +248,7 @@ def _consume_messages():
             if server_ping_fail >= NETWORK_FAIL_CHECK and not connection_failure_message_sent:
                 message_queue.clear()
                 messages_to_display.clear()
+                names_to_display.clear()
                 socketio.emit('new_message', {'message': [{'ERROR': "Network Issue: Unable to Connect to the Server"}]})
                 connection_failure_message_sent = True
                 successful_reconnection_message_sent = False
@@ -257,6 +261,7 @@ def _consume_messages():
         if time.time() - last_update_time >= STATUS_THRESHOLD:
             message_queue.clear()
             messages_to_display.clear()
+            names_to_display.clear()
             socketio.emit('new_message', {'message': messages_to_display})
             last_update_time = time.time()
 
