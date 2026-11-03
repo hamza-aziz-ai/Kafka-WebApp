@@ -1,0 +1,3 @@
+# Local tools only, never in the image: graphify keeps the code graph in graphify-out/ current.
+-r requirements.txt
+graphifyy==0.9.99

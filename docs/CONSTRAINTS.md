@@ -24,7 +24,7 @@ This project has no customers yet. The owner is simulating real-world conditions
 
 ## Only with the owner's approval
 
-- New dependencies. Add them to `requirements.txt` with the same `~=` pinning, and log why they are needed and who maintains them.
+- New dependencies. Add them to `Pipfile` with `~=`, run `pipenv lock`, copy the exact versions from `Pipfile.lock` into `requirements.txt`, and log why they are needed and who maintains them. Local tools go in `requirements-dev.txt`, never in the image.
 - Changes to `Dockerfile`, `.dockerignore` or `.github/workflows/`.
 - New network calls or external hosts.
 - Adding or changing auth, CORS or the port the app listens on.

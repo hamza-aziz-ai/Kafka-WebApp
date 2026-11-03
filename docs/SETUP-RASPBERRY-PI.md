@@ -89,7 +89,7 @@ Once you made these, the next step is install the requirements required by the `
 
 ### The `requirements.txt` file
 
-The [`requirements.txt`](../requirements.txt) file contains the packages/libraries required for the **Kafka-WebApp**
+The [`requirements.txt`](../requirements.txt) file pins the exact versions of the packages the **Kafka-WebApp** needs, the same ones the Docker image installs. They need Python 3.11 or newer, which Raspberry Pi OS Bookworm has; check with `python3 --version`.
 
 You can install these requirements by running the following command on the Raspberry Pi terminal
 
