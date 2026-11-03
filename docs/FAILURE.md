@@ -16,7 +16,7 @@ Checked against the same code as [FLOW.md](FLOW.md). None of these have been run
 | Settings | `KAFKA_PARTITIONS` is not whole numbers | The app stops at startup with a clear error | The container exits |
 | Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS` | On screen, in the strip |
 | Camera | Added while running | Its partition is picked up within 60 seconds, and anything it sent before then is not shown | Log: `Reading <topic> partitions [...]` |
-| Image server | Unknown person ID or missing image | A placeholder JPEG shows under the ID, with no error | A person spotting the placeholder |
+| Image server | Unknown person ID or missing image | A placeholder JPEG, or a coloured silhouette once the server sends `null`, shows under the ID, with no error | A person spotting the placeholder |
 | Image server | Hung, port open | Each message waits 5 seconds, then the update is dropped. The screen goes blank and the consumer falls behind | Log only |
 | Image server | Non-200 or bad JSON | The update is dropped and logged | Log only |
 | Image server | Wrong `IMAGE_SERVER_ADDRESS` | Fails as above, or shows another client's faces if it points at a live server | Log, or a person spotting a wrong face |

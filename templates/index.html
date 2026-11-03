@@ -218,9 +218,12 @@
             font-size: min(3.6vh, 2.2vw);
             font-weight: 500;
             color: var(--ink-muted);
-            white-space: nowrap;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2; /* Two lines, then an ellipsis: the ID above tells people apart, so a cut name hides nothing that matters */
             overflow: hidden;
-            text-overflow: ellipsis; /* The ID above tells people apart, so a cut name hides nothing that matters */
+            overflow-wrap: break-word; /* Only a single word too long for the line breaks inside */
         }
 
         .person-tag {
@@ -394,13 +397,35 @@
             return area;
         }
 
+        // Each draws its silhouette at 3.7:1 or better against its ground
+        const SILHOUETTE_HUES = [0, 30, 140, 200, 230, 260, 290, 330];
+
+        // A person with no photo gets a silhouette coloured from their ID, so the same person usually looks the same.
+        // A colour already on screen moves to the next free one, so no two cards share it
+        function silhouette(personId, used) {
+            let hash = 0;
+            for (const character of personId) {
+                hash = (hash * 31 + character.codePointAt(0)) >>> 0;
+            }
+            let index = hash % SILHOUETTE_HUES.length;
+            while (used.has(index)) {
+                index = (index + 1) % SILHOUETTE_HUES.length;
+            }
+            used.add(index);
+            const hue = SILHOUETTE_HUES[index];
+            const ink = `hsl(${hue},30%,38%)`;
+            return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="hsl(${hue},45%,90%)"/><circle cx="128" cy="100" r="52" fill="${ink}"/><ellipse cx="128" cy="250" rx="95" ry="80" fill="${ink}"/></svg>`);
+        }
+
         function drawPeople(rows) {
             const grid = element('div', 'people');
+            const usedHues = new Set(); // At most 4 cards, so a free colour always remains
             rows.forEach((row, index) => {
                 const personId = Object.keys(row)[0];
                 const card = element('div', index === 0 ? 'person newest' : 'person');
                 const image = element('img', '');
-                image.src = "data:image/jpg;base64," + row[personId];
+                const photo = row[personId];
+                image.src = typeof photo === 'string' && photo ? "data:image/jpg;base64," + photo : silhouette(personId, usedHues); // The image server sends null for a missing photo
                 image.alt = '';
                 const text = element('div', 'person-text');
                 text.appendChild(element('div', 'person-id', personId.replaceAll('_', '_\u200B'))); // Zero-width space: a break point after each underscore, not <wbr>, which Chrome breaks at even under nowrap
