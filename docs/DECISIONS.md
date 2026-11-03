@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-018: Move the cards clockwise with a short glide
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner.
+Context: The grid filled left to right, then top to bottom, so on each new person the top right card jumped diagonally to bottom left, and every card changed place in a single frame.
+Options: 1) clockwise order, newest top left and oldest bottom left, with each card gliding to its new place 2) keep reading order and add only the glide 3) keep the instant redraw.
+Chosen: 1. The third and fourth cards are placed bottom right and bottom left in CSS, so every move is to the next square. Each card is measured before and after the redraw and moved with the Web Animations API, in 300 ms with an ease-out curve. A new card fades in, and the leaving card fades out where it stood.
+Why: Each person moves one square along a loop, which the eye can follow, and the oldest leaves from the last square.
+Trade-off: More code in the page. Names that arrive a moment after the images cause a second redraw, which moves nothing. A browser set to reduce motion jumps instead.
+Revisit if: A busy gate brings new people faster than the 300 ms glide.
+
 ## D-017: Draw a coloured silhouette on the display for a missing photo
 
 Date: 2026-11-03. Model: Claude Opus 5.5. Chosen by the owner, with the `null` shape agreed with the CCTV session.
@@ -41,6 +51,7 @@ Chosen: 1. The page measures each name after drawing it and on resize or font lo
 Why: Ellipsis hides the end of an ID, where visitor IDs differ, so two people could look the same. A length guess in CSS is wrong for wide letters.
 Trade-off: Names in one grid can show at different sizes. An ID part with no underscore that does not fit at half size still breaks mid-word, which happens on a 1080x1920 portrait screen, where the name column is 120 px, and with long IDs that have no underscores.
 Revisit if: IDs without underscores become common, or a portrait kiosk is deployed.
+Outcome: On 2026-11-03 a test at 1024x600 found a name left 3 px too wide on one line, because text width does not scale exactly with font size. After the proportional step, the page now shrinks 1 px at a time until the name fits, and wraps below half size as before.
 
 ## D-013: Scroll camera problems in a marquee at the bottom of the screen
 

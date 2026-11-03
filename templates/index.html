@@ -166,6 +166,15 @@
             gap: 3vh;
         }
 
+        /* Clockwise: the newest is top left, and the oldest sits bottom left, the next to leave */
+        .people > .person:nth-child(3) {
+            grid-area: 2 / 2;
+        }
+
+        .people > .person:nth-child(4) {
+            grid-area: 2 / 1;
+        }
+
         .person {
             min-width: 0;
             min-height: 0;
@@ -423,6 +432,7 @@
             rows.forEach((row, index) => {
                 const personId = Object.keys(row)[0];
                 const card = element('div', index === 0 ? 'person newest' : 'person');
+                card.dataset.id = personId;
                 const image = element('img', '');
                 const photo = row[personId];
                 image.src = typeof photo === 'string' && photo ? "data:image/jpg;base64," + photo : silhouette(personId, usedHues); // The image server sends null for a missing photo
@@ -448,24 +458,62 @@
                 return;
             }
             const size = parseFloat(getComputedStyle(name).fontSize);
-            const fit = Math.floor(size * name.clientWidth / (name.scrollWidth + 1)); // + 1 because scrollWidth is rounded
+            let fit = Math.floor(size * name.clientWidth / (name.scrollWidth + 1)); // + 1 because scrollWidth is rounded
             name.style.fontSize = Math.max(fit, size / 2) + 'px';
+            while (fit >= size / 2 && name.scrollWidth > name.clientWidth) { // Text width is not quite proportional to size
+                fit -= 1;
+                name.style.fontSize = Math.max(fit, size / 2) + 'px';
+            }
             name.classList.toggle('wrap', fit < size / 2);
         }
 
         function fitNames() {
-            document.querySelectorAll('.person-id').forEach(fitName);
+            document.querySelectorAll('.people .person-id').forEach(fitName); // Not a leaving card, which is fading out
         }
 
         window.addEventListener('resize', fitNames);
         document.fonts.addEventListener('loadingdone', fitNames); // The font file changes text widths when it arrives
 
         function draw(key, build) {
-            if (key !== drawnContent) {
-                drawnContent = key;
-                document.getElementById('content').replaceChildren(build());
-                fitNames();
+            if (key === drawnContent) {
+                return false;
             }
+            drawnContent = key;
+            document.getElementById('content').replaceChildren(build());
+            fitNames();
+            return true;
+        }
+
+        function shownCards() {
+            return new Map([...document.querySelectorAll('.people > .person')].map(card => [card.dataset.id, { card, place: card.getBoundingClientRect() }]));
+        }
+
+        // Each person glides from their old place to the new one, a new person fades in, and the one leaving fades out where it stood
+        function moveCards(before) {
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return;
+            }
+            const timing = { duration: 300, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' };
+            const after = shownCards();
+            after.forEach(({ card, place }, id) => {
+                const old = before.get(id);
+                if (!old) {
+                    card.animate([{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }], timing);
+                    return;
+                }
+                const x = old.place.left - place.left;
+                const y = old.place.top - place.top;
+                if (x || y) {
+                    card.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'none' }], timing);
+                }
+            });
+            before.forEach(({ card, place }, id) => {
+                if (!after.has(id)) {
+                    Object.assign(card.style, { position: 'fixed', margin: 0, left: place.left + 'px', top: place.top + 'px', width: place.width + 'px', height: place.height + 'px', pointerEvents: 'none' });
+                    document.body.appendChild(card);
+                    card.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(0.96)' }], timing).onfinish = () => card.remove();
+                }
+            });
         }
 
         function updateContent(rows) {
@@ -474,7 +522,10 @@
             } else if (isSuccessPersisted) {
                 draw('success' + successMessage, () => drawNotice('success', successMessage));
             } else if (rows.length > 0) {
-                draw(JSON.stringify([rows, names]), () => drawPeople(rows));
+                const before = shownCards();
+                if (draw(JSON.stringify([rows, names]), () => drawPeople(rows))) {
+                    moveCards(before);
+                }
             } else {
                 draw('idle', drawIdle);
             }

@@ -13,6 +13,7 @@ Done:
 Next:
 - Done: PR #17 merged on its first CI run, which billed 3 jobs. The new `release.yml` published `v0.5.0` (digest `sha256:e2bee2a5...`, amd64 and arm64), with jobs billed about 4 minutes instead of about 11. The `automerge` run sent the CCTV dispatch without a warning, and CCTV's `submodules` run passed.
 - The owner chose coloured silhouettes for a missing photo, drawn by the display (D-017), and asked for names to wrap to two lines before the ellipsis. Built, and checked in real headless Chrome at 4 screen sizes with 1 to 4 cards. The CCTV side sends `null` only after this release is deployed.
+- The owner asked for cards to move clockwise with a quick glide (D-018). Built and checked with continuous dummy data from a private Kafka broker, a stub server and a producer.
 - Send the CCTV session the `v0.5.0` digest, wait for its live report with real names, then set `ROLLBACK.md`'s last known good to `v0.5.0`.
 
 Risks added:
