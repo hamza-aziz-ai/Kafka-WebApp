@@ -15,17 +15,21 @@ Done:
 - Released `v0.6.0` (PR #18): coloured silhouettes for a missing photo (D-017) and names on two lines, and `v0.7.0` (PR #19): clockwise cards with a 0.3 s glide (D-018) and a fix for a name left 3 px too wide. Both merged on their first CI run.
 - CCTV `v2.13.0` runs `v0.6.0`. The CCTV session reported the data path live: `/post_images` and `/post_names` both answer 200, and the container logged no errors. Nobody has looked at the screen yet.
 - Ran the `FAILURE.md` simulation on a private stack and recorded the results there. It found one bug: a listed service that refuses connections makes the consumer loop spin at full CPU with no pause, which also defeats the 10-failure debounce and floods Kafka with connections.
-
-Next:
 - The owner approved the busy-spin fix as `v0.7.1`: a 0.5 second pause after each failed check. `test_partitions.py` failed without it (2.2 million checks in 1.5 s) and passes with it, and in Docker a refused port went from 90% to 0.15% CPU. Send CCTV the digest, which replaces `v0.7.0` in its step 4 PR.
 - `v0.7.2`, approved by the owner: names are now cleared with the rows after 15 idle seconds or an outage. Before, the last 4 names stayed in memory and went to every connected page every 100 ms. `test_partitions.py` fails without the fix and passes with it. CCTV's step 4 PR pins `v0.7.2`, and nothing on the display side remains for CCTV's deletion work (8e).
 - `v0.6.0` is last known good: the owner checked the live screen through the sign-in proxy (a name under `hamza_aziz`, the ID alone for an unregistered visitor) and approved it. CCTV PR #106 pins `v0.7.2` and switches `/post_images` to `null`.
 - The owner found that a page refreshed during an outage showed `Ready for the next person` instead of the red panel, and then saw it for a moment on load. Now the server keeps the status in force with its end time and sends the whole screen on connect, on every poll and inside the page, which keeps no state of its own (D-019). A grey `Connecting` panel covers startup, and a lost socket shows red. Frames recorded in a real browser show no idle frame on load during an outage, during the restart wait, or across a display restart with services up or down. The owner chose to hold it: it ships as `v0.7.3` when approved.
 - CCTV `v2.14.1` runs `v0.7.3`, and the owner's screen check passed: names, two-line names, distinct silhouettes, clockwise glide, and `Temporarily Down` held after a refresh. The owner then asked that camera chips hide while a system status shows. Built, with a red-green test and recorded frames: the chips go in the same frame as the panel, and stay hidden through a refresh and the restart wait. The owner approved it as `v0.7.4`, and made `v0.7.3` the last known good.
-- CCTV `v2.14.2` runs `v0.7.4`, the owner's screen check passed, and `v0.7.4` is last known good. The owner then chose to keep camera chips through an outage with a 60 second life each repeat renews (D-020), so they return the moment the restart wait ends. Built, with a red-green test and an end-to-end run: both chips returned with the rows, and a camera that stopped repeating dropped off 59 seconds later. It ships as `v0.7.5`.
-- After #106 deploys, get CCTV's screen report of silhouettes and clockwise cards, then ask the owner whether `v0.7.2` becomes last known good. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
+- CCTV `v2.14.2` runs `v0.7.4`, the owner's screen check passed, and `v0.7.4` is last known good. The owner then chose to keep camera chips through an outage with a 60 second life each repeat renews (D-020), so they return the moment the restart wait ends. Built, with a red-green test and an end-to-end run: both chips returned with the rows, and a camera that stopped repeating dropped off 59 seconds later. Released as `v0.7.5` (`2119e4e`).
+
+Next:
+- CCTV pins `v0.7.5` in its next PR, together with its problem codes, notice rule and deletion work (8e). After it deploys, the owner checks that camera chips return when the restart wait ends, then decides whether `v0.7.5` becomes last known good. Last known good is `v0.7.4` (`7e8a896`).
+- Known gaps, not started: no alarm when a dependency stays down; `socket.io.js` from a CDN, so a kiosk with no internet gets no live updates; the Flask development server; no auth on port 9090, which CCTV covers with its sign-in proxy except on a Raspberry Pi.
+- The owner reviews `CONSTRAINTS.md`.
 
 Risks added:
+- A display restart, as in a deploy, shows red `Network Issue` on open pages for a few seconds (D-019).
+- A camera recovery missed during an outage leaves its amber chip for up to 60 seconds after the wait (D-020).
 - A hung name server adds up to 5 seconds per message to the consumer loop, although the faces show first. Names are new personal data on a page with no auth. CCTV publishes 9090 on 127.0.0.1 behind its sign-in proxy (CCTV D-040), and a Raspberry Pi display is the open case.
 - The release no longer re-runs lint, gitleaks or the arm64 smoke test on the merged commit (D-016).
 
