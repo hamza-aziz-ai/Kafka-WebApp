@@ -19,7 +19,8 @@ Done:
 Next:
 - The owner approved the busy-spin fix as `v0.7.1`: a 0.5 second pause after each failed check. `test_partitions.py` failed without it (2.2 million checks in 1.5 s) and passes with it, and in Docker a refused port went from 90% to 0.15% CPU. Send CCTV the digest, which replaces `v0.7.0` in its step 4 PR.
 - `v0.7.2`, approved by the owner: names are now cleared with the rows after 15 idle seconds or an outage. Before, the last 4 names stayed in memory and went to every connected page every 100 ms. `test_partitions.py` fails without the fix and passes with it. CCTV's step 4 PR pins `v0.7.2`, and nothing on the display side remains for CCTV's deletion work (8e).
-- The owner checks the live screen before `v0.6.0` becomes last known good. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
+- `v0.6.0` is last known good: the owner checked the live screen through the sign-in proxy (a name under `hamza_aziz`, the ID alone for an unregistered visitor) and approved it. CCTV PR #106 pins `v0.7.2` and switches `/post_images` to `null`.
+- After #106 deploys, get CCTV's screen report of silhouettes and clockwise cards, then ask the owner whether `v0.7.2` becomes last known good. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
 
 Risks added:
 - A hung name server adds up to 5 seconds per message to the consumer loop, although the faces show first. Names are new personal data on a page with no auth. CCTV publishes 9090 on 127.0.0.1 behind its sign-in proxy (CCTV D-040), and a Raspberry Pi display is the open case.
