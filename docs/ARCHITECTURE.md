@@ -135,6 +135,7 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}` |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID, never an error, so an unknown ID cannot be told from a known one by shape |
 | Kafka login, from D-036, step 3c | `SASL_PLAINTEXT` with `SCRAM-SHA-512` on port 9092, as the `<client>_display` user, with Read and Describe on topics `<client>.*` and Read on groups `<client>.*`. `<topic>.display` fits the `<client>.` prefix. This app turns it on when `KAFKA_USERNAME` is set. `SASL_SSL` comes later through `KAFKA_SECURITY_PROTOCOL` |
+| Fonts | The CCTV proxy routes `/static/fonts/` to this app, and the CCTV sign-in page and its `/api/live` page (CCTV PR #102) load `ibm_plex_sans_regular.ttf` and `ibm_plex_sans_semibold.ttf` from there. Keep those paths and file names, or tell the CCTV side before changing them |
 
 **One screen per entry point by default.** The display reads every partition of its topic, so it shows all cameras at that point. `KAFKA_PARTITIONS` narrows it to chosen cameras, for one screen per camera.
 
