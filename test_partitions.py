@@ -224,8 +224,16 @@ def check_failed_checks_pause():
     assert len(calls) <= 10, f"{len(calls)} checks in 1.5 s: the loop spins on a failed check"
 
 
+def check_names_cleared_when_idle():
+    # A name must not outlive its card: app's consumer thread clears the rows after STATUS_THRESHOLD idle seconds
+    app.names_to_display = {"a": "Ann Lee"}
+    app.last_update_time = 0
+    time.sleep(2)
+    assert app.names_to_display == {}, app.names_to_display
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names, check_failed_checks_pause):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names, check_failed_checks_pause, check_names_cleared_when_idle):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

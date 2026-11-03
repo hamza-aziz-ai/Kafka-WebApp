@@ -26,7 +26,7 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 
 - **Shape:** a dict from person ID to name, from `POST /post_names`. IDs with a null or empty name are left out.
 - **Size:** at most 4 entries, the IDs in the last request.
-- **Written by:** the consumer thread, which replaces it after each image request, and empties it on any name server error.
+- **Written by:** the consumer thread, which replaces it after each image request, and empties it on any name server error. It is also emptied with `messages_to_display`, after 15 idle seconds or on an outage, so a name never outlives its card. Before `v0.7.2` it was not, and the last names kept going to every connected page.
 - **Read by:** the Socket.IO handlers, sent as `names` with every poll.
 - **Privacy:** names are personal data. They stay in memory and are never logged, here or on the CCTV side.
 
