@@ -17,8 +17,8 @@ Done:
 - Ran the `FAILURE.md` simulation on a private stack and recorded the results there. It found one bug: a listed service that refuses connections makes the consumer loop spin at full CPU with no pause, which also defeats the 10-failure debounce and floods Kafka with connections.
 
 Next:
-- Fix the consumer loop busy-spin with a short sleep on a failed check, as a `fix:` release. Needs the owner's approval.
-- The owner decides whether CCTV's data-path report is enough to make `v0.6.0` last known good, or checks the screen first. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
+- The owner approved the busy-spin fix as `v0.7.1`: a 0.5 second pause after each failed check. `test_partitions.py` failed without it (2.2 million checks in 1.5 s) and passes with it, and in Docker a refused port went from 90% to 0.15% CPU. Send CCTV the digest, which replaces `v0.7.0` in its step 4 PR.
+- The owner checks the live screen before `v0.6.0` becomes last known good. Then CCTV pins `v0.7.0` and switches `/post_images` to `null` in one PR.
 
 Risks added:
 - A hung name server adds up to 5 seconds per message to the consumer loop, although the faces show first. Names are new personal data on a page with no auth. CCTV publishes 9090 on 127.0.0.1 behind its sign-in proxy (CCTV D-040), and a Raspberry Pi display is the open case.
