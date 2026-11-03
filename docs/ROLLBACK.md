@@ -42,5 +42,7 @@ Open a PR that reverts the squash commit, using a `fix:` title so that a new rel
 | Image server timeout (PR #7) | Revert, or raise `IMAGE_SERVER_TIMEOUT` in `parameters.py` if the 5 seconds is the problem. It is a constant, not a variable, so it needs a release | None |
 | Same-origin socket (PR #12) | Do not go below `v0.3.1` on an HTTPS display: older pages get no live updates behind a proxy | None |
 | Name fit (PR #15) | Revert. Older pages break a long name mid-word | None |
+| Names (PR #17) | Revert. Older displays show the ID alone, and an older CCTV release without `/post_names` already gets that | None |
+| Silhouettes (PR #18) | Do not go below `v0.6.0` once the CCTV image server sends `null` for a missing photo, because older pages show a broken image. Roll the CCTV side back to its placeholder JPEG first. CCTV waits to send `null` until `v0.6.0` is proven live and is the last known good here | None |
 
 This app has no database and no migrations, so a rollback never touches stored data. Topic names and the `/post_images` contract are shared with the CCTV system, so check with it before rolling back anything that touches them.
