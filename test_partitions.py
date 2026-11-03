@@ -232,8 +232,36 @@ def check_names_cleared_when_idle():
     assert app.names_to_display == {}, app.names_to_display
 
 
+def check_page_loading_during_outage():
+    def first_message():
+        client = app.socketio.test_client(app.app)
+        received = client.get_received()
+        client.disconnect()
+        data = next(event["args"][0] for event in received if event["name"] == "new_message")
+        return data["message"], data["status_seconds"]
+
+    app.push_status("ERROR", "Network Issue: Unable to Connect to the Server")
+    assert first_message() == ([{"ERROR": "Network Issue: Unable to Connect to the Server"}], None)
+    # Every poll repeats it too, so the page mirrors the server and never falls back to the idle screen
+    client = app.socketio.test_client(app.app)
+    client.get_received()
+    client.emit("check_updates")
+    polled = [e["args"][0]["message"] for e in client.get_received() if e["name"] == "new_message"]
+    client.disconnect()
+    assert polled and polled[-1] == [{"ERROR": "Network Issue: Unable to Connect to the Server"}], polled
+    # A green status resumes with the time it has left, then ends
+    app.push_status("SUCCESS", "Network Reconnection Successful", seconds=60)
+    message, seconds = first_message()
+    assert message == [{"SUCCESS": "Network Reconnection Successful"}] and 58 < seconds <= 60, (message, seconds)
+    # The page itself carries the state, so its first frame is never the idle screen
+    page = app.app.test_client().get("/").get_data(as_text=True)
+    assert "Network Reconnection Successful" in page and "showMessage({" in page
+    app.display_status["until"] = time.time() - 1
+    assert first_message() == (app.messages_to_display, None)
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names, check_failed_checks_pause, check_names_cleared_when_idle):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names, check_failed_checks_pause, check_names_cleared_when_idle, check_page_loading_during_outage):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit
