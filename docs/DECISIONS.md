@@ -10,7 +10,7 @@ Options: 1) keep the chips, give each `ERROR` a 60 second life that each repeat 
 Chosen: 1.
 Why: The chips return the moment the wait ends. Option 2 would leave a camera that recovered during the outage amber forever, because its `SUCCESS` was never read.
 Trade-off: A recovery missed in an outage shows amber for up to 60 seconds. A camera whose `ERROR` repeats less than once a minute would flicker off between repeats, so `CAMERA_ERROR_SECONDS` must stay above the producer's slowest repeat.
-Revisit if: The producer's repeat interval for low light turns out longer than 60 seconds.
+Revisit if: The producer repeats an `ERROR` less than once a minute. On 2026-11-03 the CCTV session confirmed 30 seconds for low light (`LIGHTING_ALERT_SECONDS`) and about 21 seconds for an inaccessible camera.
 
 ## D-019: The page mirrors the server's screen, and refreshing never loses a status
 
