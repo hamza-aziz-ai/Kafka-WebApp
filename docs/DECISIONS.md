@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-017: Draw a coloured silhouette on the display for a missing photo
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Chosen by the owner, with the `null` shape agreed with the CCTV session.
+Context: The owner liked coloured silhouettes, one colour per person, better than the CCTV server's single grey placeholder JPEG. The display could not tell that placeholder from a real photo.
+Options: 1) the image server sends `null`, and the page draws an SVG silhouette 2) the image server makes coloured JPEGs 3) keep the grey placeholder.
+Chosen: 1. The colour comes from a hash of the ID, picked from 8 hues, each at 3.7:1 or better between silhouette and ground. A colour already on screen moves to the next free one, so no two cards match, as the owner asked. A timeout or a non-200 from `/post_images` keeps today's behaviour, where the previous rows stay, so a server fault does not look like four missing photos.
+Why: The display already draws the card, so it needs no extra bytes or server CPU, and only the display can see which colours are on screen.
+Trade-off: A person usually keeps their colour, but can get another one when their usual colour is already on screen. The order matters: a display older than this release would show a broken image for `null`, so the CCTV side switches only after this release is deployed.
+Revisit if: More than 8 cards fit on a screen, or people read colour as meaning something.
+
 ## D-016: Spend fewer Actions minutes per PR and release
 
 Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner, who chose to ship it with D-015.
@@ -19,7 +29,7 @@ Context: The Kafka message is the person's unique ID, such as an organisational 
 Options: 1) a separate `POST /post_names` on the image server 2) add names to the `/post_images` response 3) send names in the Kafka message.
 Chosen: 1. The ID stays the large text and the name goes under it. The display asks for names after the images, and any failure shows the ID alone.
 Why: Options 2 and 3 change contracts that older displays and CCTV releases read, so the two sides would have to upgrade together. A new endpoint lets either side upgrade first.
-Trade-off: A second request per message, so a hung name server costs up to another 5 seconds, although the faces show first. Names are new personal data on the screen. A long name is cut with an ellipsis, which is safe because the ID above tells people apart.
+Trade-off: A second request per message, so a hung name server costs up to another 5 seconds, although the faces show first. Names are new personal data on the screen. A long name wraps to two lines and is then cut with an ellipsis, as the owner asked on 2026-11-03, which is safe because the ID above tells people apart.
 Revisit if: The extra request slows a busy gate, or the CCTV side can return names with the images in a versioned response.
 
 ## D-014: Shrink a long name to one line, then wrap it after an underscore

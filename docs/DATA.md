@@ -15,7 +15,7 @@ The shape of Kafka messages and of the `/post_images` response is owned by the C
 
 ## `messages_to_display`
 
-- **Shape:** the JSON body from the image server, a list in request order of one-key objects: `{"<id>": "<base64 jpg>"}`.
+- **Shape:** the JSON body from the image server, a list in request order of one-key objects: `{"<id>": "<base64 jpg>"}`. The value is `null` for a missing image once the CCTV side switches (D-017).
 - **Size:** at most 4 rows, each with a base64 image. Image size is set by the image server.
 - **Written by:** the consumer thread. It replaces the value on a 200, and clears it on an outage or after 15 idle seconds.
 - **Read by:** the Socket.IO handlers, once every 100 ms per open page.
