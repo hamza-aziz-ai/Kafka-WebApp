@@ -25,6 +25,7 @@ from parameters import CONFLUENT_KAFKA_IP_ADDRESS, \
     SERVER_IP_ADDRESS, \
     HOST_CHECK_PORT, \
     NETWORK_FAIL_CHECK, \
+    FAILED_CHECK_PAUSE, \
     IMAGE_SERVER_TIMEOUT, \
     PROJECT_SERVICES
 
@@ -238,6 +239,7 @@ def _consume_messages():
                     feedback_client_logger.error("Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue")
                     kafka_consumer = None
                     services_ping_fail = 0
+                time.sleep(FAILED_CHECK_PAUSE)
         else:
             server_ping_fail += 1
             if server_ping_fail >= NETWORK_FAIL_CHECK and not connection_failure_message_sent:
@@ -250,6 +252,7 @@ def _consume_messages():
                 feedback_client_logger.error("Network Issue: Unable to Connect to the Server")
                 kafka_consumer = None
                 server_ping_fail = 0
+            time.sleep(FAILED_CHECK_PAUSE)
 
         if time.time() - last_update_time >= STATUS_THRESHOLD:
             message_queue.clear()

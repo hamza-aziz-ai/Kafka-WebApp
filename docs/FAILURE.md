@@ -6,8 +6,8 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 
 | Dependency | Failure | What happens | How you notice |
 |---|---|---|---|
-| Server network | Down | After 10 failed passes, a red `Network Issue` message. Consuming stops | On screen, in the log |
-| Any service port | Closed | After 10 failed passes, a red `Temporarily Down` message. Recovery waits 2 minutes 5 seconds before consuming. A port that refuses at once makes the 10 passes take milliseconds, so the debounce does not work, and the loop spins at full CPU until it opens (see the results) | On screen, in the log |
+| Server network | Down | After 10 failed passes, at least 5 seconds, a red `Network Issue` message. Consuming stops | On screen, in the log |
+| Any service port | Closed | After 10 failed passes, at least 5 seconds, a red `Temporarily Down` message. Recovery waits 2 minutes 5 seconds before consuming | On screen, in the log |
 | Kafka | Port open but failing | The partition check fails every 10 seconds, nothing is read, and the screen stays on the idle face guide | Log only |
 | Kafka | Slow | Rows appear late | Nobody is told |
 | Kafka | Topic missing or wrong `KAFKA_TOPIC` | The screen stays blank, and the check repeats every 60 seconds | Log only |
@@ -64,7 +64,7 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 | `KAFKA_PARTITIONS=7`, not in the topic | `Partitions [7] are not in maingate_entry yet` logged every 60 s | Log only |
 | `KAFKA_PARTITIONS=0,x` | Exits with code 1 and a clear message | At start |
 | `IP_ADDRESS` not set | `Network Issue` | 3 s |
-| A listed port that never opens (refuses) | Red `Temporarily Down` within 2 s, then the loop spins: 90% of a CPU core on the display and 19% on Kafka from constant connections, and false `Network Issue` flaps when the Kafka check fails under that load | Until the port opens |
+| A listed port that never opens (refuses) | On `v0.7.0`: red `Temporarily Down` within 2 s, then the loop spun at 90% of a CPU core on the display and 19% on Kafka from constant connections, with false `Network Issue` flaps when the Kafka check failed under that load. Fixed in `v0.7.1` by a 0.5 second pause after each failed pass: the red panel came after 5 s, at 0.15% CPU, with no flaps | 5 s from `v0.7.1` |
 | A listed name that does not resolve | Red `Temporarily Down`, about 3 s per DNS lookup, at 0.1% CPU | 28 s |
 | Kafka port open but silent | Partition check fails every 10 s, idle screen, nothing on screen | Log only |
 | Page opened during an outage | Idle face guide, not the red panel. It got the next status push | Until the next push |

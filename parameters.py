@@ -86,6 +86,9 @@ CAMERA_SUCCESS_SECONDS = 5
 # Number of times to check for network failure
 NETWORK_FAIL_CHECK = 10
 
+# Seconds to wait after a failed check: a refused port fails at once, and without this the loop spins at full CPU and 10 failures take milliseconds
+FAILED_CHECK_PAUSE = 0.5
+
 # Seconds to wait on the image server, so a hung server cannot freeze the consumer thread
 IMAGE_SERVER_TIMEOUT = 5
 

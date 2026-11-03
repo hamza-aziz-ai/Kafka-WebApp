@@ -212,8 +212,20 @@ def check_names():
     assert set(urls) == {parameters.NAME_SERVER_ADDRESS} and parameters.NAME_SERVER_ADDRESS.endswith(":20013/post_names"), urls
 
 
+def check_failed_checks_pause():
+    # app's own consumer thread is already running against 192.0.2.1; make every check fail at once, like a refused port
+    calls = []
+    original = app.ping_server
+    app.ping_server = lambda host, port: calls.append(port) or False
+    try:
+        time.sleep(1.5)
+    finally:
+        app.ping_server = original
+    assert len(calls) <= 10, f"{len(calls)} checks in 1.5 s: the loop spins on a failed check"
+
+
 if __name__ == "__main__":
-    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names):
+    for check in (check_parse, check_assign, check_queue, check_camera_status, check_startup_rejects_bad_value, check_project_services, check_probes_use_each_host, check_kafka_login, check_page, check_default_address, check_names, check_failed_checks_pause):
         check()
         print("PASS", check.__name__, flush=True)
     os._exit(0)  # app's daemon threads would otherwise keep logging until exit

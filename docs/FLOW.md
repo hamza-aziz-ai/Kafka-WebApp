@@ -65,7 +65,7 @@ flowchart TD
 
 ## F2. Health checks, outages and recovery
 
-Every pass of the consumer loop starts here, before any Kafka work. This flow decides what the display says when something is down. Failure counts must reach `NETWORK_FAIL_CHECK` (10), so a brief drop does not show an error.
+Every pass of the consumer loop starts here, before any Kafka work. This flow decides what the display says when something is down. Failure counts must reach `NETWORK_FAIL_CHECK` (10), and each failed pass then sleeps `FAILED_CHECK_PAUSE` (0.5 seconds), so a drop of under 5 seconds does not show an error. Without the pause, a port that refuses at once spun the loop at full CPU and reached 10 failures in milliseconds.
 
 ```mermaid
 flowchart TD
