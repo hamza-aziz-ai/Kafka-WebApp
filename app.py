@@ -46,6 +46,7 @@ kafka_conf = {
 
 message_queue = []
 messages_to_display = []
+display_status = {"level": "INFO", "text": "Connecting to the Facial Recognition Attendance System", "until": None}  # The last status: {level, text, until}; until is None while it lasts until changed. Until the first checks finish, nothing is known
 names_to_display = {}  # Person ID to name, for the IDs last sent to the name server. Memory only, never logged, and cleared with the rows
 last_update_time = time.time()
 connection_failure_message_sent = False
@@ -58,6 +59,25 @@ assigned_partitions = set()
 camera_status = {}
 
 CONTROL_PREFIXES = ("ERROR ", "SUCCESS ")
+
+# Statuses are pushed once, so keep the last one with its end time: a page that loads or reconnects resumes it, with the time it has left
+def push_status(level, text, seconds=None):
+    global display_status
+    display_status = {"level": level, "text": text, "until": None if seconds is None else time.time() + seconds}
+    socketio.emit('new_message', {'message': [{level: text}], 'status_seconds': seconds})
+
+def status_in_force():
+    status = display_status
+    if status and (status["until"] is None or status["until"] > time.time()):
+        return status
+    return None
+
+# Everything a page needs to draw the screen as it is now, sent on connect and on every poll. A status in force replaces the rows
+def current_state():
+    status = status_in_force()
+    message = [{status["level"]: status["text"]}] if status else messages_to_display
+    seconds = round(status["until"] - time.time(), 1) if status and status["until"] else None
+    return {'message': message, 'status_seconds': seconds, 'names': names_to_display, 'camera_status': current_camera_status()}
 
 def ping_server(ip: str, port: int):
     try:
@@ -137,7 +157,7 @@ def current_camera_status():
 def _consume_messages():
     global message_queue, last_update_time, messages_to_display
     global connection_failure_message_sent, project_services_down_message_sent
-    global successful_reconnection_message_sent, project_restart_message_sent, kafka_consumer
+    global successful_reconnection_message_sent, project_restart_message_sent, kafka_consumer, display_status
 
     server_ping_fail = 0
     services_ping_fail = 0
@@ -153,7 +173,7 @@ def _consume_messages():
                 message_queue.clear()
                 messages_to_display.clear()
                 names_to_display.clear()
-                socketio.emit('new_message', {'message': [{'SUCCESS': "Network Reconnection Successful"}]})
+                push_status('SUCCESS', "Network Reconnection Successful", seconds=5)
                 successful_reconnection_message_sent = True
                 connection_failure_message_sent = False
                 feedback_client_logger.info("Network Reconnection Successful")
@@ -164,11 +184,11 @@ def _consume_messages():
                     message_queue.clear()
                     messages_to_display.clear()
                     names_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'SUCCESS': "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes"}]})
+                    push_status('SUCCESS', "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes", seconds=2 * 60)
                     feedback_client_logger.info("Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes")
                     time.sleep(2 * 60)
 
-                    socketio.emit('new_message', {'message': [{'SUCCESS': "Facial Recognition Attendance System Has Been Started. Please Resume Attendance"}]})
+                    push_status('SUCCESS', "Facial Recognition Attendance System Has Been Started. Please Resume Attendance", seconds=5)
                     feedback_client_logger.info("Facial Recognition Attendance System Has Been Started. Please Resume Attendance")
                     project_restart_message_sent = True
                     project_services_down_message_sent = False
@@ -182,6 +202,8 @@ def _consume_messages():
                         camera_status.clear()
                         next_partition_check = 0
                         feedback_client_logger.info("Created a fresh Kafka consumer")
+                        if display_status and display_status["level"] == "INFO":
+                            display_status = None  # The first checks passed, so the startup panel gives way to the rows
                     except Exception as e:
                         feedback_client_logger.exception("Failed to initialize Kafka Consumer")
                         kafka_consumer = None
@@ -236,7 +258,7 @@ def _consume_messages():
                     message_queue.clear()
                     messages_to_display.clear()
                     names_to_display.clear()
-                    socketio.emit('new_message', {'message': [{'ERROR': "Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue"}]})
+                    push_status('ERROR', "Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue")
                     project_services_down_message_sent = True
                     project_restart_message_sent = False
                     feedback_client_logger.error("Facial Recognition System Temporarily Down for Maintenance or Due to an Unexpected Issue")
@@ -249,7 +271,7 @@ def _consume_messages():
                 message_queue.clear()
                 messages_to_display.clear()
                 names_to_display.clear()
-                socketio.emit('new_message', {'message': [{'ERROR': "Network Issue: Unable to Connect to the Server"}]})
+                push_status('ERROR', "Network Issue: Unable to Connect to the Server")
                 connection_failure_message_sent = True
                 successful_reconnection_message_sent = False
                 project_services_down_message_sent = False
@@ -262,7 +284,7 @@ def _consume_messages():
             message_queue.clear()
             messages_to_display.clear()
             names_to_display.clear()
-            socketio.emit('new_message', {'message': messages_to_display})
+            socketio.emit('new_message', current_state())  # The whole state, so clearing the rows cannot hide a status in force
             last_update_time = time.time()
 
 def consume_messages():
@@ -292,15 +314,16 @@ watchdog_thread.start()
 
 @socketio.on('connect')
 def handle_connect():
-    emit('new_message', {'message': messages_to_display, 'names': names_to_display, 'camera_status': current_camera_status()})
+    emit('new_message', current_state())
 
 @socketio.on('check_updates')
 def handle_check_updates():
-    emit('new_message', {'message': messages_to_display, 'names': names_to_display, 'camera_status': current_camera_status()})
+    emit('new_message', current_state())
 
 @app.route('/')
 def index():
-    return render_template('index.html', location=DISPLAY_LOCATION)
+    # Drawn into the page, so its first frame is the real screen, never the idle face guide while the socket connects
+    return render_template('index.html', location=DISPLAY_LOCATION, state=current_state())
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9090)

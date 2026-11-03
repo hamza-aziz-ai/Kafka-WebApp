@@ -2,6 +2,16 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-019: The page mirrors the server's screen, and refreshing never loses a status
+
+Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner, who saw `Ready for the next person` after refreshing during a CCTV deploy, and then for a moment on load.
+Context: Statuses were pushed once and kept only in each page, so a page that loaded or reconnected later showed the idle face guide. The page also drew the idle screen before its socket connected, and fell back to it 15 seconds after losing the server.
+Options: 1) the server keeps the status in force with its end time, and sends the whole screen on connect, on every poll and inside the page itself 2) replay the status only on connect 3) keep pushing once.
+Chosen: 1. The owner asked that no message vanish on a refresh, not even for a blink, and that short ones still expire. A new grey `Connecting` panel covers the start, until the first checks pass, as the owner chose. A lost socket or a silent server shows the red `Network Issue` panel.
+Why: A page that draws only what the server says cannot disagree with it, and it is less page code than the old persistence flags and timers.
+Trade-off: Each poll now sends the status in place of the rows, which is the same size. A page that loses the server shows red `Network Issue` even when only the display restarted, which a deploy does for a few seconds.
+Revisit if: Kiosks restart the display often enough that the red flash alarms people, then use a gentler panel for a lost socket.
+
 ## D-018: Move the cards clockwise with a short glide
 
 Date: 2026-11-03. Model: Claude Opus 5.5. Asked for by the owner.

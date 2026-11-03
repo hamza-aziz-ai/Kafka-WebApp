@@ -21,7 +21,7 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 | Image server | Non-200 or bad JSON | The update is dropped and logged | Log only |
 | Image server | Wrong `IMAGE_SERVER_ADDRESS` | Fails as above, or shows another client's faces if it points at a live server | Log, or a person spotting a wrong face |
 | CDN | Unreachable at page load | The page script stops at its first line, so the content area stays empty and never updates | The screen shows no rows or status |
-| Browser | Crashes or loses the socket | A status pushed in that moment is lost, because statuses are not stored | The kiosk `Restart=on-abort` covers only aborts |
+| Browser | Crashes or loses the socket | While the socket is down, the page shows red `Network Issue`. On reconnect or reload, it gets the screen as the server has it, including any status with the time it has left | The kiosk `Restart=on-abort` covers only aborts |
 | Consumer thread | Dies | The watchdog restarts it within 10 seconds | Log |
 | Consumer thread | Stuck in a call with no timeout | Display freezes. The watchdog only sees dead threads | Nobody is told |
 | Disk | Full | Logging can fail. Logs are not strictly capped across months | Host monitoring only |
@@ -41,7 +41,7 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 - `PROJECT_SERVICES` entries that use a service name need DNS. A name that does not resolve counts as down, and a slow lookup slows every pass, because the 0.5 second timeout does not cover it.
 - Camera status lines are lost on a display restart or a rebuilt consumer, and they return with the next `ERROR`: within 30 seconds for an inaccessible camera, and at the next evaluation for low light.
 - A `SUCCESS` missed during an outage is harmless, because the rebuilt consumer empties the strip and only a live problem re-sends `ERROR`.
-- A page that loads during an outage shows no status, because statuses are pushed once and not stored.
+- A page that loads during an outage showed the idle face guide before `v0.7.3`, because statuses were pushed once and not stored. The owner hit this during a CCTV deploy on 2026-11-03. From `v0.7.3` the server keeps the status in force and sends it to every page that connects. A page that loads during the 2 minute restart wait shows the full 2 minute bar from when it loaded.
 - After a Kafka reconnect, messages published during the gap are never shown, because the new consumer starts at `OFFSET_END`.
 - `ping_server` never closes its sockets and relies on the garbage collector. CPython reclaims them at once, but watch the file handle count on a long run.
 
@@ -67,7 +67,7 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 | A listed port that never opens (refuses) | On `v0.7.0`: red `Temporarily Down` within 2 s, then the loop spun at 90% of a CPU core on the display and 19% on Kafka from constant connections, with false `Network Issue` flaps when the Kafka check failed under that load. Fixed in `v0.7.1` by a 0.5 second pause after each failed pass: the red panel came after 5 s, at 0.15% CPU, with no flaps | 5 s from `v0.7.1` |
 | A listed name that does not resolve | Red `Temporarily Down`, about 3 s per DNS lookup, at 0.1% CPU | 28 s |
 | Kafka port open but silent | Partition check fails every 10 s, idle screen, nothing on screen | Log only |
-| Page opened during an outage | Idle face guide, not the red panel. It got the next status push | Until the next push |
+| Page opened during an outage | On `v0.7.2`: idle face guide, not the red panel, until the next status push. Fixed in `v0.7.3`: frames recorded from the first moment show the red panel at once with no idle frame, and a page opened 45 s into the restart wait shows the bar at 39% | Immediate from `v0.7.3` |
 | CDN blocked | Page script fails at its first line, content area empty | Permanent |
 | 300 messages in 0.5 s | All 300 posted to the image server in 3.4 s, about 88 a second against a local stub. Sampling every 500 ms saw only 20 of the 300 people on screen, so in a burst most rows are never readable | 3.4 s |
 | Bandwidth, 4 cards with 25 KB photos | About 343 KB a second per open screen, 10 frames a second | Steady |

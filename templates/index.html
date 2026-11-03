@@ -295,6 +295,12 @@
             color: #ffffff;
         }
 
+        .notice-info {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            color: var(--ink-muted);
+        }
+
         .notice-success {
             background: var(--success-fill);
             color: var(--success-text);
@@ -351,11 +357,9 @@
         const socket = io.connect(); // Same origin, so it works on plain HTTP and behind an HTTPS proxy
         let lastUpdate = Date.now();
         const clearIntervalTime = 15000; // 15 seconds
-        let errorMessage = ''; // Store the current error message
-        let successMessage = ''; // Store the current success message
-        let isErrorPersisted = false; // Flag to check if error message should persist
-        let isSuccessPersisted = false; // Flag to check if success message should persist
+        let screenStatus = null; // The ERROR, SUCCESS or INFO status the server says is in force, or null to show the rows
         let names = {}; // Person ID to name; an ID with no name shows alone
+        let successUntil = 0; // When the green status ends, so a reloaded page resumes it instead of starting it again
         let drawnContent = null; // The server repeats itself every 100 ms: redraw only on a change, or the progress bar restarts
         let drawnStatus = null; // The same goes for the marquee
 
@@ -391,7 +395,9 @@
             area.appendChild(element('div', 'notice notice-' + type, text));
             if (text === STARTING_MESSAGE) {
                 const progress = element('div', 'progress');
-                progress.appendChild(element('div', ''));
+                const bar = element('div', '');
+                bar.style.animationDelay = -Math.max(0, 120 - (successUntil - Date.now()) / 1000) + 's'; // Resumes a bar already part filled
+                progress.appendChild(bar);
                 area.appendChild(progress);
             }
             return area;
@@ -517,10 +523,9 @@
         }
 
         function updateContent(rows) {
-            if (isErrorPersisted) {
-                draw('error' + errorMessage, () => drawNotice('error', errorMessage));
-            } else if (isSuccessPersisted) {
-                draw('success' + successMessage, () => drawNotice('success', successMessage));
+            if (screenStatus) {
+                const { level, text } = screenStatus;
+                draw(level + text, () => drawNotice(level.toLowerCase(), text));
             } else if (rows.length > 0) {
                 const before = shownCards();
                 if (draw(JSON.stringify([rows, names]), () => drawPeople(rows))) {
@@ -531,49 +536,46 @@
             }
         }
 
-        socket.on('new_message', function (data) {
+        function showMessage(data) {
             // Status pushes from the server carry no camera_status, and must leave the strip alone
             if (data.camera_status) {
                 updateCameraStatus(data.camera_status);
             }
 
-            const errorMessages = data.message.filter(item => item.hasOwnProperty('ERROR'));
-            const successMessages = data.message.filter(item => item.hasOwnProperty('SUCCESS'));
-
-            if (errorMessages.length > 0) {
-                errorMessage = errorMessages[0].ERROR;
-                isErrorPersisted = true;
-                isSuccessPersisted = false; // Clear success flag if an error occurs
-                successMessage = ''; // Clear success message if an error occurs
-            } else if (successMessages.length > 0) {
-                successMessage = successMessages[0].SUCCESS;
-                isSuccessPersisted = true;
-                isErrorPersisted = false; // Clear error flag if a success occurs
-                errorMessage = ''; // Clear error message if a success occurs
-                setTimeout(() => {
-                    isSuccessPersisted = false;
-                }, successMessage === STARTING_MESSAGE ? 120000 : 5000); // 2 minutes for the restart wait, otherwise 5 seconds
-            } else if (data.message.length > 0) {
-                isErrorPersisted = false;
-                errorMessage = ''; // Clear error message if valid data is received
+            // The server sends the screen as it is on every poll, so the page draws exactly that and keeps no state of its own
+            const item = data.message[0];
+            const level = item && ['ERROR', 'SUCCESS', 'INFO'].find(key => key in item);
+            screenStatus = level ? { level, text: item[level] } : null;
+            if (level === 'SUCCESS') {
+                successUntil = Date.now() + (data.status_seconds || 5) * 1000; // Places the 2 minute bar on a page that loads late
             }
 
             names = data.names || {}; // Older servers send none
-            updateContent(data.message);
-            lastUpdate = Date.now(); // Update the last update time
-        });
+            updateContent(level ? [] : data.message);
+            lastUpdate = Date.now();
+        }
+
+        socket.on('new_message', showMessage);
+
+        // Without the server nothing is known, as when it restarts, so say so instead of looking idle
+        function connectionLost() {
+            screenStatus = { level: 'ERROR', text: 'Network Issue: Unable to Connect to the Server' };
+            updateContent([]);
+        }
+
+        socket.on('disconnect', connectionLost);
 
         setInterval(function () {
             socket.emit('check_updates');
         }, 100); // Check for updates every 100 milliseconds (adjust as needed)
 
         setInterval(function () {
-            if (!isErrorPersisted && !isSuccessPersisted && Date.now() - lastUpdate > clearIntervalTime) {
-                updateContent([]); // Clear the rows if the server stops answering and no error or success is displayed
+            if (Date.now() - lastUpdate > clearIntervalTime) {
+                connectionLost(); // The server stopped answering polls; it clears the rows itself when nobody comes
             }
-        }, 1000); // Check every second if messages should be cleared
+        }, 1000);
 
-        updateContent([]);
+        showMessage({{ state | tojson }}); // The screen as the server had it when it sent this page
     </script>
 </body>
 
