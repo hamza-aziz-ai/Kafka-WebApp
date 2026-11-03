@@ -64,7 +64,7 @@ CONTROL_PREFIXES = ("ERROR ", "SUCCESS ")
 def push_status(level, text, seconds=None):
     global display_status
     display_status = {"level": level, "text": text, "until": None if seconds is None else time.time() + seconds}
-    socketio.emit('new_message', {'message': [{level: text}], 'status_seconds': seconds})
+    socketio.emit('new_message', current_state())  # The whole screen, so the camera chips go in the same frame as the panel comes
 
 def status_in_force():
     status = display_status
@@ -77,7 +77,10 @@ def current_state():
     status = status_in_force()
     message = [{status["level"]: status["text"]}] if status else messages_to_display
     seconds = round(status["until"] - time.time(), 1) if status and status["until"] else None
-    return {'message': message, 'status_seconds': seconds, 'names': names_to_display, 'camera_status': current_camera_status()}
+    # A system status supersedes the camera chips: no camera can be checked while the system itself is down. They stay in
+    # camera_status, so they return when the status ends, unless the consumer was rebuilt and they wait for the next ERROR
+    cameras = [] if status else current_camera_status()
+    return {'message': message, 'status_seconds': seconds, 'names': names_to_display, 'camera_status': cameras}
 
 def ping_server(ip: str, port: int):
     try:
