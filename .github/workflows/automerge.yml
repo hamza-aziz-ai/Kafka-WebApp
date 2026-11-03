@@ -52,6 +52,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      # Lets the CCTV repo move its submodule pin to the new main. Empty until the owner saves it, and then skipped.
+      SUBMODULES_TOKEN: ${{ secrets.SUBMODULES_TOKEN }}
     steps:
       - name: Merge every ready PR whose head commit passed all checks
         run: |
@@ -93,3 +95,9 @@ jobs:
           # Merges made with GITHUB_TOKEN start no push workflows, but workflow_dispatch is allowed:
           # hand over to release.yml, which decides whether the merged titles call for a version bump.
           if [ "$total" -gt 0 ]; then gh workflow run release.yml --ref main; fi
+          # Here, not in ci.yml: these merges are the only pushes to main that run any workflow, because direct
+          # pushes are [skip ci] docs. A failed call only warns, since the merge is done and CCTV's daily run catches up.
+          if [ "$total" -gt 0 ] && [ -n "$SUBMODULES_TOKEN" ]; then
+            GH_TOKEN="$SUBMODULES_TOKEN" gh api repos/hamza-aziz-ai/CCTV-Face-Recognition-Attendance-System/dispatches \
+              -f event_type=submodule-main || echo "::warning::CCTV submodule dispatch failed; its daily run catches up."
+          fi
