@@ -240,8 +240,11 @@ def check_page_loading_during_outage():
         data = next(event["args"][0] for event in received if event["name"] == "new_message")
         return data["message"], data["status_seconds"]
 
+    app.camera_status.clear()
+    app.update_camera_status("ERROR gate_a_cam2: Camera stream from gate_a_cam2 is not accessible.")
     app.push_status("ERROR", "Network Issue: Unable to Connect to the Server")
     assert first_message() == ([{"ERROR": "Network Issue: Unable to Connect to the Server"}], None)
+    assert app.current_state()["camera_status"] == [], "camera chips must hide behind a system status"
     # Every poll repeats it too, so the page mirrors the server and never falls back to the idle screen
     client = app.socketio.test_client(app.app)
     client.get_received()
@@ -258,6 +261,8 @@ def check_page_loading_during_outage():
     assert "Network Reconnection Successful" in page and "showMessage({" in page
     app.display_status["until"] = time.time() - 1
     assert first_message() == (app.messages_to_display, None)
+    assert app.current_state()["camera_status"] == [{"level": "ERROR", "text": "Camera stream from gate_a_cam2 is not accessible."}]
+    app.camera_status.clear()
 
 
 if __name__ == "__main__":

@@ -537,7 +537,7 @@
         }
 
         function showMessage(data) {
-            // Status pushes from the server carry no camera_status, and must leave the strip alone
+            // Empty while a system status is in force, so the panel replaces the chips
             if (data.camera_status) {
                 updateCameraStatus(data.camera_status);
             }
@@ -560,6 +560,7 @@
         // Without the server nothing is known, as when it restarts, so say so instead of looking idle
         function connectionLost() {
             screenStatus = { level: 'ERROR', text: 'Network Issue: Unable to Connect to the Server' };
+            updateCameraStatus([]); // Nothing is known about the cameras either
             updateContent([]);
         }
 
