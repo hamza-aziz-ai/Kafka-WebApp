@@ -1,6 +1,6 @@
 # ROLLBACK: the way back out
 
-**Last known good release:** `v0.7.4`, commit `7e8a896`. Update this line after each release proves itself on a real display.
+**Last known good release:** `v0.7.5`, commit `2119e4e`. Update this line after each release proves itself on a real display.
 
 ## Roll back a release
 
@@ -12,10 +12,10 @@ On a standalone display, keep its settings. A new container started with only `I
 
 ```bash
 docker inspect <container> --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -vE '^(PATH|LANG|GPG_KEY|PYTHON_[A-Z0-9_]*)=' > display.env
-docker pull ghcr.io/hamza-aziz-ai/kafka-webapp:v0.7.4
+docker pull ghcr.io/hamza-aziz-ai/kafka-webapp:v0.7.5
 docker stop <container>
 docker rm <container>
-docker run -d --name <container> --restart unless-stopped -p 9090:9090 --env-file display.env ghcr.io/hamza-aziz-ai/kafka-webapp:v0.7.4
+docker run -d --name <container> --restart unless-stopped -p 9090:9090 --env-file display.env ghcr.io/hamza-aziz-ai/kafka-webapp:v0.7.5
 rm display.env
 ```
 
