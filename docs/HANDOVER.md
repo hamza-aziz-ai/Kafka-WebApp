@@ -11,7 +11,7 @@ Done:
 Next:
 - Release order agreed with the CCTV session: CCTV ships `/health` and its proxy route first, then this release, then CCTV pins it, sets `HEALTH_URL` in `docker-compose-main.yml` and drops `PROJECT_SERVICES`. Send the CCTV session the tag and digest when released.
 - After it deploys, the owner checks the live screen with the producer stopped and restarted, then decides whether the release becomes last known good. Last known good is `v0.7.5` (`2119e4e`).
-- Ask the CCTV session to bound the CPU fallback of an inaccessible camera's reopen, which `CAMERA_ERROR_SECONDS` assumes stays under about 2 minutes.
+- The CCTV session bounded the camera reopen in its branch `fix/attendance-saved`: 35 seconds per repeat for a camera that does not answer, about 80 at worst, so `CAMERA_ERROR_SECONDS` (180) has margin. The same CCTV PR ships `/health` and pins `v0.8.0` with `HEALTH_URL`, so the display never runs without the endpoint. The CCTV session says when it is deployed.
 - Known gaps, not started: no alarm when a dependency stays down; `socket.io.js` from a CDN; the Flask development server; no auth on port 9090.
 - The owner reviews `CONSTRAINTS.md`.
 
