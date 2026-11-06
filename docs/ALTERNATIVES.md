@@ -8,6 +8,6 @@ Decisions made during this work are in [DECISIONS.md](DECISIONS.md). The entries
 | `assign()` at `OFFSET_END` | `subscribe()` with a group | A live display wants only what is happening now, with no rebalancing | Misses anything sent while down. See D-006 for the choice to read every partition | Displays must not miss messages |
 | Image server builds the rows | Fetch images in this app | Face data stays on the CCTV side | Each message needs a network call | Image server latency hurts the display |
 | In-memory state | Redis or a database | Nothing needs to survive a restart | No history, and one process only | Several workers or history are needed |
-| TCP port probes | Service health endpoints | Works with every service unchanged | An open port does not prove a working service | A false healthy causes a real outage |
+| The producer's readiness endpoint (D-021) | TCP port probes, used until `v0.7.5` | The producer knows whether recognition and attendance writes work, and a port does not | Depends on one CCTV endpoint, so an older CCTV release reads as unreachable | The endpoint itself proves unreliable |
 | One Python process with threads | Separate consumer and web services | One container, easy on a Pi | One crash takes down both | The watchdog is no longer enough |
 | Flask development server | A production WSGI server | Simplest way to serve one kiosk | Not built for production load | More than a few screens connect |

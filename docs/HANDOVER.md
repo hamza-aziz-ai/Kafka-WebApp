@@ -2,7 +2,25 @@
 
 Read this first and update it last, every session. Newest entry goes on top. Then read [CONSTRAINTS.md](CONSTRAINTS.md).
 
-## Latest session: 2026-11-03 (model: Claude Opus 5.5, `claude-opus-5-5`)
+## Latest session: 2026-11-06 (model: Claude Opus 5.5, `claude-opus-5-5`)
+
+Done:
+- At the CCTV session's request, approved by the owner, readiness now comes from the CCTV producer's `GET /health` instead of 7 TCP ports (D-021). Gone: `HOST_CHECK_PORT`, `PROJECT_SERVICES`, `PROJECT_SERVICES_PORT`, `NETWORK_FAIL_CHECK`, `FAILED_CHECK_PAUSE` and the blocking 2 minute wait with its progress bar. New: `HEALTH_URL`, polled every 2 seconds in its own thread, 3 results in a row to change state, and a separate check of the display's own Kafka path. Camera messages are read through an outage, a failed image call shows the current IDs as silhouettes, `CAMERA_ERROR_SECONDS` is 180, and requests are closed by `with` blocks.
+- Simulated on a private stack with a switchable `/health` stub, recorded in headless Chrome, and watched live by the owner. The first run found a real bug: a 3 second DNS failure overran the 2 second beat, a negative sleep raised, and the health thread died with the screen on ready. Fixed, with a red-green test and a stale guard. The owner then chose an immediate panel when all Kafka brokers are down, because waiting for 3 checks showed the idle screen for 6 seconds. 19 checks pass in `test_partitions.py`.
+
+Next:
+- Release order agreed with the CCTV session: CCTV ships `/health` and its proxy route first, then this release, then CCTV pins it, sets `HEALTH_URL` in `docker-compose-main.yml` and drops `PROJECT_SERVICES`. Send the CCTV session the tag and digest when released.
+- After it deploys, the owner checks the live screen with the producer stopped and restarted, then decides whether the release becomes last known good. Last known good is `v0.7.5` (`2119e4e`).
+- Ask the CCTV session to bound the CPU fallback of an inaccessible camera's reopen, which `CAMERA_ERROR_SECONDS` assumes stays under about 2 minutes.
+- Known gaps, not started: no alarm when a dependency stays down; `socket.io.js` from a CDN; the Flask development server; no auth on port 9090.
+- The owner reviews `CONSTRAINTS.md`.
+
+Risks added:
+- An older CCTV release has no `/health`, so this release on it shows `Cannot Reach` for good. Never pin it ahead of the CCTV endpoint.
+- An outage the producer reports shows about 6 seconds late, because of the 3-in-a-row confirmation.
+- Through the proxy, the display must trust the site's certificate, or it reads `Cannot Reach`.
+
+## Session: 2026-11-03 (model: Claude Opus 5.5, `claude-opus-5-5`)
 
 Done:
 - `v0.4.2` is the last known good release, approved by the owner after the CCTV session checked long names on the owner's display.

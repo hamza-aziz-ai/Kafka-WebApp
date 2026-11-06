@@ -6,29 +6,34 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 
 | Dependency | Failure | What happens | How you notice |
 |---|---|---|---|
-| Server network | Down | After 10 failed passes, at least 5 seconds, a red `Network Issue` message. Consuming stops | On screen, in the log |
-| Any service port | Closed | After 10 failed passes, at least 5 seconds, a red `Temporarily Down` message. Recovery waits 2 minutes 5 seconds before consuming | On screen, in the log |
-| Kafka | Port open but failing | The partition check fails every 10 seconds, nothing is read, and the screen stays on the idle face guide | Log only |
+| Readiness endpoint | No answer, refused or timing out | After 3 failed checks, about 6 seconds, a red `Cannot Reach the Facial Recognition Attendance System` panel | On screen, in the log |
+| Readiness endpoint | Answers `unready` | After 3 checks, a red `Temporarily Down` panel. The reasons are logged | On screen, in the log |
+| Readiness endpoint | Answers `starting` | Green `Getting Started. Please Wait` until it is ready, then `Has Been Started` for 5 seconds | On screen |
+| Readiness endpoint | Missing, as on a CCTV release before D-051 | Every check fails, so the display stays on `Cannot Reach` | On screen |
+| Readiness endpoint | Health thread stuck or dead | After 7.5 seconds with no result, `Cannot Reach` | On screen, in the log |
+| Kafka | All brokers down | `Cannot Reach` as soon as librdkafka reports it, about 5 seconds after the broker stopped | On screen, in the log |
+| Kafka | Port open but failing | After 3 failed metadata checks, `Cannot Reach` | On screen, in the log |
 | Kafka | Slow | Rows appear late | Nobody is told |
-| Kafka | Topic missing or wrong `KAFKA_TOPIC` | The screen stays blank, and the check repeats every 60 seconds | Log only |
+| Kafka | Topic missing or wrong `KAFKA_TOPIC` | After 3 failed checks, `Cannot Reach`, and the check repeats every 2 seconds | On screen, in the log |
 | Settings | `KAFKA_PARTITIONS` names a partition that does not exist | A warning is logged at every check, and it is picked up when it appears | Log only |
-| Settings | `IP_ADDRESS` not set | The default `127.0.0.1` is used. In a container that is the container itself, so a red `Network Issue` panel shows | On screen, in the log |
+| Settings | `IP_ADDRESS` not set | The default `127.0.0.1` is used. In a container that is the container itself, so `Cannot Reach` shows | On screen, in the log |
+| Settings | `HEALTH_URL` not an `http` or `https` URL | The app stops at startup with a clear error | The container exits |
 | Settings | `KAFKA_PARTITIONS` is not whole numbers | The app stops at startup with a clear error | The container exits |
-| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS`, or 60 seconds after the last repeat | On screen, in the strip |
+| Camera | Lighting or stream problem | The CCTV producer sends an `ERROR` control message, scrolled in the marquee as an amber chip until that camera's `SUCCESS`, or 180 seconds after the last repeat | On screen, in the strip |
 | Camera | Added while running | Its partition is picked up within 60 seconds, and anything it sent before then is not shown | Log: `Reading <topic> partitions [...]` |
 | Image server | Unknown person ID or missing image | A placeholder JPEG, or a coloured silhouette once the server sends `null`, shows under the ID, with no error | A person spotting the placeholder |
-| Image server | Hung, port open | Each message waits 5 seconds, then the update is dropped. The screen keeps the last rows, and the consumer falls behind | Log only |
-| Image server | Non-200 or bad JSON | The update is dropped and logged | Log only |
+| Image server | Hung, port open | Each message waits 5 seconds, then shows the current IDs with silhouettes, and the consumer falls behind | Log, and silhouettes on screen |
+| Image server | Down, non-200 or bad JSON | The current IDs show with silhouettes and no names, never the rows from before | Silhouettes on screen, in the log |
 | Image server | Wrong `IMAGE_SERVER_ADDRESS` | Fails as above, or shows another client's faces if it points at a live server | Log, or a person spotting a wrong face |
 | CDN | Unreachable at page load | The page script stops at its first line, so the content area stays empty and never updates | The screen shows no rows or status |
-| Browser | Crashes or loses the socket | While the socket is down, the page shows red `Network Issue`. On reconnect or reload, it gets the screen as the server has it, including any status with the time it has left | The kiosk `Restart=on-abort` covers only aborts |
+| Browser | Crashes or loses the socket | While the socket is down, the page shows red `Network Issue`, its own wording, because the page cannot tell the display server from the network. On reconnect or reload, it gets the screen as the server has it, including any status with the time it has left | The kiosk `Restart=on-abort` covers only aborts |
 | Consumer thread | Dies | The watchdog restarts it within 10 seconds | Log |
 | Consumer thread | Stuck in a call with no timeout | Display freezes. The watchdog only sees dead threads | Nobody is told |
 | Disk | Full | Logging can fail. Logs are not strictly capped across months | Host monitoring only |
 
 ## Limits, first expected first
 
-1. **Throughput.** Each pass makes up to 7 TCP connections with the default list before it polls for one message, then one blocking POST. On a slow link, sustained bursts will lag. No limit has been measured.
+1. **Throughput.** Each pass polls for one message, then makes two blocking POSTs, for images and names. Readiness is one GET every 2 seconds in its own thread. On a slow link, sustained bursts will lag. No limit has been measured.
 2. **Screens.** Every open page polls 10 times a second and receives all images each time, so traffic grows with each screen and image size.
 3. **Queue size.** The display shows 4 people. In a busy moment, earlier rows are pushed off the screen before anyone reads them.
 4. **Cameras per screen.** Every camera at a point now shares one consumer loop and 4 rows, so limits 1 and 3 arrive sooner as cameras are added. No limit has been measured.
@@ -36,16 +41,33 @@ Checked against the same code as [FLOW.md](FLOW.md). Most rows were simulated on
 
 ## Known behaviour worth checking in simulation
 
-- Anything published during a services outage or the 2 minute restart wait is never shown, because the consumer is rebuilt at `OFFSET_END`.
-- A listed port that never opens stops the display for good: no consumer is created until every entry answers, so the screen stays on the red panel. A display in the CCTV stack hit this with 19001.
-- `PROJECT_SERVICES` entries that use a service name need DNS. A name that does not resolve counts as down, and a slow lookup slows every pass, because the 0.5 second timeout does not cover it.
-- Camera status lines are lost on a display restart, and return with the next `ERROR`. Through an outage they are kept and hidden, and they return the moment the restart wait ends. Simulated on 2026-11-03: both chips returned with the rows, and a camera that stopped repeating dropped off 59 seconds later. The 60 seconds hold for both repeats on CCTV `main`, confirmed by the CCTV session on 2026-11-03: a dark camera every 30 seconds (`LIGHTING_ALERT_SECONDS`), and an inaccessible camera about every 21 seconds.
-- A `SUCCESS` missed during an outage leaves its amber chip for up to 60 seconds after the wait, until it drops off unrepeated.
+- A person recognised while a panel shows is never shown, on purpose: it would come back as a stale row, for attendance that may not have been kept.
+- The 3-in-a-row confirmation means an outage the producer reports shows about 6 seconds late, and the rows or idle screen stay up until then.
+- Camera status lines are lost on a display restart, and return with the next `ERROR`. Through an outage they are still read and kept hidden, and they return with the rows. `CAMERA_ERROR_SECONDS` (180) assumes an inaccessible camera's CPU reopen takes under about 2 minutes, because its `ERROR` comes after a 30 second wait, a GPU probe of up to 30 seconds and that reopen, which has no fixed limit on the CCTV side.
+- A `SUCCESS` missed while Kafka was out of reach leaves its amber chip for up to 180 seconds, until it drops off unrepeated.
+- Through the proxy, `HEALTH_URL` needs a certificate the display trusts. An untrusted one reads as `Cannot Reach`.
 - A page that loads during an outage showed the idle face guide before `v0.7.3`, because statuses were pushed once and not stored. The owner hit this during a CCTV deploy on 2026-11-03. From `v0.7.3` the server keeps the status in force and sends it to every page that connects. A page that loads during the 2 minute restart wait shows the full 2 minute bar from when it loaded.
 - After a Kafka reconnect, messages published during the gap are never shown, because the new consumer starts at `OFFSET_END`.
-- `ping_server` never closes its sockets and relies on the garbage collector. CPython reclaims them at once, but watch the file handle count on a long run.
+
+## Simulation results (2026-11-06, readiness endpoint)
+
+Simulated before release on a private stack: Kafka, the stub image and name server, a stub `/health` that can be switched, a producer, and headless Chrome logging the screen every 500 ms. The owner watched the second run live.
+
+| Scenario | What happened | Time |
+|---|---|---|
+| Starting at display start | Green `Getting Started`, then `Has Been Started` 6 s after the stub said ready, then rows | 6 s |
+| Unready | Red `Temporarily Down`, chips hidden, reasons logged | 5 s |
+| Starting after unready | Green `Getting Started` | Within 1 s |
+| Health check hangs past its timeout | Red `Cannot Reach` | 7 s |
+| Health container stopped | First run: no panel at all, because a 3 second DNS failure overran the 2 second beat, a negative sleep raised, and the health thread died. Fixed before release, with a test, and the stale guard added. Second run: red `Cannot Reach` | 8 s |
+| Image server stopped | The current people as silhouettes, with no names and no old rows. Photos and names returned with the server | Immediate |
+| Kafka stopped | With 3 checks: the idle screen for 6 s, then `Cannot Reach` after 18 s. With the owner's choice of an immediate panel on all brokers down: the rows stayed until `Cannot Reach`, with no idle frame | 5 s |
+| Kafka back | `Has Been Started`, then rows and chips | 5 s |
+| Page refreshed during an outage | The same panel at once | Immediate |
 
 ## Simulation results (2026-11-03)
+
+These ran against `v0.7.0`, before the readiness endpoint, so the port checks and the 2 minute wait in them are gone.
 
 | Scenario | What happened | Time |
 |---|---|---|

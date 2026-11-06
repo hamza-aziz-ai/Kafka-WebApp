@@ -44,5 +44,6 @@ Open a PR that reverts the squash commit, using a `fix:` title so that a new rel
 | Name fit (PR #15) | Revert. Older pages break a long name mid-word | None |
 | Names (PR #17) | Revert. Older displays show the ID alone, and an older CCTV release without `/post_names` already gets that | None |
 | Silhouettes (PR #18) | Do not go below `v0.6.0` once the CCTV image server sends `null` for a missing photo, because older pages show a broken image. Roll the CCTV side back to its placeholder JPEG first. CCTV waits to send `null` until `v0.6.0` is proven live and is the last known good here | None |
+| Readiness endpoint (D-021) | Revert, and put `PROJECT_SERVICES` back in deployments. Run this release only with a CCTV release that serves `/health`, or every display shows `Cannot Reach`. Roll back the display before rolling CCTV below that release | None |
 
 This app has no database and no migrations, so a rollback never touches stored data. Topic names and the `/post_images` contract are shared with the CCTV system, so check with it before rolling back anything that touches them.

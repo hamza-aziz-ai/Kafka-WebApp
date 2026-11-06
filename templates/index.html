@@ -305,31 +305,6 @@
             background: var(--success-fill);
             color: var(--success-text);
         }
-
-        .progress {
-            width: 47vw;
-            height: 1.5vh;
-            border-radius: 0.75vh;
-            background: var(--line);
-            overflow: hidden;
-        }
-
-        .progress div {
-            height: 100%;
-            border-radius: 0.75vh;
-            background: var(--accent);
-            animation: fill 120s linear forwards;
-        }
-
-        @keyframes fill {
-            from {
-                width: 0;
-            }
-
-            to {
-                width: 100%;
-            }
-        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
@@ -351,16 +326,12 @@
     </div>
 
     <script type="text/javascript">
-        // Must match the text in app.py exactly: it holds this message for 2 minutes
-        const STARTING_MESSAGE = "Facial Recognition Attendance System is Getting Started. Please Wait for 2 Minutes";
-
         const socket = io.connect(); // Same origin, so it works on plain HTTP and behind an HTTPS proxy
         let lastUpdate = Date.now();
         const clearIntervalTime = 15000; // 15 seconds
         let screenStatus = null; // The ERROR, SUCCESS or INFO status the server says is in force, or null to show the rows
         let names = {}; // Person ID to name; an ID with no name shows alone
-        let successUntil = 0; // When the green status ends, so a reloaded page resumes it instead of starting it again
-        let drawnContent = null; // The server repeats itself every 100 ms: redraw only on a change, or the progress bar restarts
+        let drawnContent = null; // The server repeats itself every 100 ms: redraw only on a change
         let drawnStatus = null; // The same goes for the marquee
 
         function element(tag, className, text) {
@@ -393,13 +364,6 @@
         function drawNotice(type, text) {
             const area = element('div', 'centred');
             area.appendChild(element('div', 'notice notice-' + type, text));
-            if (text === STARTING_MESSAGE) {
-                const progress = element('div', 'progress');
-                const bar = element('div', '');
-                bar.style.animationDelay = -Math.max(0, 120 - (successUntil - Date.now()) / 1000) + 's'; // Resumes a bar already part filled
-                progress.appendChild(bar);
-                area.appendChild(progress);
-            }
             return area;
         }
 
@@ -546,9 +510,6 @@
             const item = data.message[0];
             const level = item && ['ERROR', 'SUCCESS', 'INFO'].find(key => key in item);
             screenStatus = level ? { level, text: item[level] } : null;
-            if (level === 'SUCCESS') {
-                successUntil = Date.now() + (data.status_seconds || 5) * 1000; // Places the 2 minute bar on a page that loads late
-            }
 
             names = data.names || {}; // Older servers send none
             updateContent(level ? [] : data.message);

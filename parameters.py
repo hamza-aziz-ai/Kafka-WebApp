@@ -1,35 +1,24 @@
 import os
-import re
+from urllib.parse import urlsplit
 
 # Project Services
 SERVER_IP_ADDRESS = os.getenv("IP_ADDRESS", "127.0.0.1")
 
-# Port that shows the host is reachable
-HOST_CHECK_PORT = int(os.getenv("HOST_CHECK_PORT", "22"))
+# Readiness of the attendance system: the producer answers 200 {"status": "ready"} or 503 with starting or unready and its reasons.
+# Outside the client's stack, as on a Raspberry Pi, point it at https://<site host>/health through the proxy
+HEALTH_URL = os.getenv("HEALTH_URL") or f"http://{SERVER_IP_ADDRESS}:20010/health"
+if urlsplit(HEALTH_URL).scheme not in ("http", "https") or not urlsplit(HEALTH_URL).netloc:
+    raise SystemExit(f"HEALTH_URL must be an http or https URL, got {HEALTH_URL!r}")
 
-DEFAULT_PROJECT_SERVICES_PORT = [
-    6385, 19000,            # InsightFace
-    19530,                  # Milvus Vector Database
-    9092,                   # Kafka Broker
-    9090,                   # Reporting API, proof that the app stack is up
-    20013                   # Display-Image-Server
-]
-# Comma-separated override, for a host that does not run every service above
-PROJECT_SERVICES_PORT = [int(p) for p in os.getenv("PROJECT_SERVICES_PORT", "").split(",") if p] or DEFAULT_PROJECT_SERVICES_PORT
+# Seconds between readiness checks, and the most one may take, so a check is done before the next is due
+HEALTH_INTERVAL = 2
+HEALTH_TIMEOUT = 1.5
 
-def _parse_services(value: str) -> list[tuple[str, int]]:
-    services = []
-    for entry in value.split(","):
-        match = re.fullmatch(r"(?:([A-Za-z0-9._-]+):)?([0-9]{1,5})", entry.strip())
-        if not match or not 0 < int(match[2]) < 65536:
-            raise SystemExit(f"PROJECT_SERVICES entries must be host:port or port, got {entry!r}")
-        services.append((match[1] or SERVER_IP_ADDRESS, int(match[2])))
-    return services
+# Results in a row that change the screen between ready and down, for readiness and for the display's own Kafka checks
+HEALTH_STREAK = 3
 
-# Comma-separated host:port or bare port entries (a bare port means IP_ADDRESS), for services not published on the host
-# Must stay a separate name from PROJECT_SERVICES_PORT: older images crash on host:port there, and they ignore this one
-PROJECT_SERVICES_ENV = os.getenv("PROJECT_SERVICES", "")
-PROJECT_SERVICES = _parse_services(PROJECT_SERVICES_ENV) if PROJECT_SERVICES_ENV.strip() else [(SERVER_IP_ADDRESS, port) for port in PROJECT_SERVICES_PORT]
+# Seconds with no readiness result, as when a check hangs where its timeout does not reach, before the system counts as unreachable
+HEALTH_STALE = HEALTH_STREAK * HEALTH_INTERVAL + HEALTH_TIMEOUT
 
 # Kafka IP and Port
 CONFLUENT_KAFKA_IP_ADDRESS = SERVER_IP_ADDRESS
@@ -83,15 +72,10 @@ NAME_SERVER_ADDRESS = IMAGE_SERVER_ADDRESS.rsplit("/", 1)[0] + "/post_names"
 # Seconds a camera's SUCCESS text stays in the status strip
 CAMERA_SUCCESS_SECONDS = 5
 
-# Seconds a camera's ERROR stays without a repeat. The producer repeats it while the problem lasts, about every 21 seconds for an
-# inaccessible camera, so this renews before it runs out, and a chip whose SUCCESS was missed, as during an outage, drops off
-CAMERA_ERROR_SECONDS = 60
-
-# Number of times to check for network failure
-NETWORK_FAIL_CHECK = 10
-
-# Seconds to wait after a failed check: a refused port fails at once, and without this the loop spins at full CPU and 10 failures take milliseconds
-FAILED_CHECK_PAUSE = 0.5
+# Seconds a camera's ERROR stays without a repeat, so a chip whose SUCCESS was missed, as during an outage, drops off. The producer
+# repeats an inaccessible camera's ERROR after each failed reopen: a 30 second wait, a GPU probe of up to 30 seconds, then a CPU
+# fallback with no fixed limit. This covers a 60 second CPU reopen with a minute to spare, and test_partitions.py checks it
+CAMERA_ERROR_SECONDS = 180
 
 # Seconds to wait on the image server, so a hung server cannot freeze the consumer thread
 IMAGE_SERVER_TIMEOUT = 5

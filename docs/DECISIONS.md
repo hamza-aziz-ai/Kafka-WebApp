@@ -2,6 +2,17 @@
 
 One entry per meaningful decision, newest on top, with the rejected options. Rejected options with their revisit conditions are also collected in [ALTERNATIVES.md](ALTERNATIVES.md).
 
+## D-021: Judge readiness from the producer's /health, not from open ports
+
+Date: 2026-11-06. Model: Claude Opus 5.5. Requested by the CCTV session, designed in two Claude and Codex councils there (CCTV D-051), approved by the owner.
+Context: Up meant 7 TCP ports open. The recognizer has no port, so its death showed as up. `HOST_CHECK_PORT` 9092 made a Kafka outage read as `Network Issue`. The portrait server was required, so a portrait failure blanked everything, while a failed image call kept stale rows. Recovery blocked the consumer thread for 2 minutes, so no names, camera errors or checks. Each display made about 40 TCP connections a second.
+Options: 1) poll the producer's `GET /health` every 2 seconds in its own thread, debounced to 3 results in a row, and check the display's own Kafka path apart from it 2) keep the port list and add the recognizer's port 3) poll `/health` inside the consumer loop.
+Chosen: 1.
+Why: Only the producer knows whether recognition and attendance writes work. Option 2 still says nothing about a hung worker. Option 3 would stall reading Kafka for each slow check.
+Also: the panels say no more than is known, so no answer reads `Cannot Reach the Facial Recognition Attendance System`, not `Network Issue`. `Getting Started` lasts while the producer says starting, with no 2 minute wait or bar. Camera messages are read through an outage. A failed image call shows the current IDs with silhouettes. When librdkafka reports all brokers down, an authentication failure or a fatal error, the panel goes up at once, because a simulation showed the idle screen for 6 seconds while 3 checks of up to 5 seconds each ran; the owner chose this. A health thread that records nothing for 7.5 seconds counts as unreachable. `CAMERA_ERROR_SECONDS` rises from 60 to 180, because an inaccessible camera's `ERROR` comes after a 30 second wait, a GPU probe of up to 30 seconds and a CPU reopen with no fixed limit, so 60 could drop a chip while the fault lasted.
+Trade-off: The display depends on one CCTV endpoint, and an older CCTV release reads as unreachable, so the release order is CCTV first. Through the proxy, the display needs a certificate it trusts. A recovery missed in an outage now shows amber for up to 180 seconds.
+Revisit if: The producer's CPU reopen can take longer than about 2 minutes, or the endpoint proves unreliable.
+
 ## D-020: Keep camera chips through an outage, with a 60 second life each repeat renews
 
 Date: 2026-11-03. Model: Claude Opus 5.5. Chosen by the owner.
