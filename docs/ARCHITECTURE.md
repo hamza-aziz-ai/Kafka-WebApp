@@ -55,7 +55,7 @@ flowchart TD
     C -->|"status push"| W
     C -->|"consume"| Q
     C -->|"POST queue, get images"| I
-    C -.->|"TCP health probes"| S
+    C -.->|"GET /health every 2 s"| S
     C -.-> L
     D -.->|"restart if dead"| C
 
@@ -64,7 +64,7 @@ flowchart TD
     classDef outside fill:#e2e3e5,stroke:#565e64,color:#000
 ```
 
-The app talks to only two services on the CCTV host: Kafka and the display-image server. It never calls the others; it only checks that their ports accept connections, because an attendance display should say the system is down when any part of it is. `PROJECT_SERVICES` sets that list exactly, and can name a host per service, so a display inside the CCTV stack can reach services that are not published on the host. Otherwise `PROJECT_SERVICES_PORT` narrows the default list. Both exist because older images crash on `host:port` in `PROJECT_SERVICES_PORT`, while they ignore `PROJECT_SERVICES`.
+The app talks to three things on the CCTV host: Kafka, the display-image server, and the producer's readiness endpoint at `HEALTH_URL`. It does not check the other services itself. The producer judges readiness from its own work, so a stopped recognizer, which has no port, shows as down, as does a failing database write (CCTV D-051, D-021 here).
 
 On a central host, each client's display must point at its own image server through `IMAGE_SERVER_ADDRESS`. In the CCTV stack that is `http://display-image-server:20013/post_images`. A display left on the wrong server would show another client's faces.
 
@@ -132,7 +132,8 @@ This app shows the recognition data the CCTV system sends, so the two must chang
 | Topic | `<location>_<point>`, becoming `<client>.<location>_<point>` (with `owner.` for the owner) from CCTV decision D-036, step 3c |
 | Partition | Camera number - 1, so `cctv-camera-3` goes to partition 2. The count only grows, when a camera is added |
 | Person message | Value is the plain person ID, not a name and not JSON. Key is the camera name, `<location>_<point>_<camera>`. Only recognised matches are sent, one per person per camera per batch |
-| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts: every 30 seconds for an inaccessible camera, and on every evaluation for low light. `SUCCESS` is sent once per recovery. This app keeps these itself and does not post them to the image server |
+| Control message | `ERROR <camera>: <text>` or `SUCCESS <camera>: <text>`, sent by the CCTV producer for lighting and camera stream problems, on that camera's partition. The producer re-sends `ERROR` while the condition lasts: for an inaccessible camera after each failed reopen, which is a 30 second wait, a GPU probe of up to 30 seconds and a CPU fallback with no fixed limit, and every 30 seconds for low light. `SUCCESS` is sent once per recovery. This app keeps these itself and does not post them to the image server |
+| `GET /health` | Served by the CCTV producer on port 20010, open without login, and through the proxy at `https://<site host>/health`. `200 {"status": "ready", "reasons": []}`, or `503 {"status": "starting" or "unready", "reasons": [codes]}`. Codes are short strings such as `milvus_unavailable` or `recognition_stalled`, never IDs, names or images. Agreed with the CCTV session on 2026-11-06 (CCTV D-051, D-021 here) |
 | `POST /post_images` | Body is `{"messages": [...]}`, person IDs only. The response is a list in request order with one single-key object per message: `{"<id>": "<base64 jpg>"}`, or `{"<id>": null}` for a missing image |
 | `POST /post_names` | Same server and base path as `/post_images`, and the same request body. The response is a JSON object with every requested ID: `{"<id>": "<name>" or null}`, read from the client's persons table. Names are plain strings, shown with `textContent`. Older CCTV releases answer 404, and the display then shows the ID alone. Added by the owner's decision of 2026-11-03 (D-015) |
 | Unknown ID or missing image | Returns a 256x256 placeholder JPEG under the ID today, never an error, so an unknown ID cannot be told from a known one by shape. Agreed on 2026-11-03: once a display release that draws silhouettes is deployed, the CCTV side sends `null` instead, still under the ID and in request order. The display draws a coloured silhouette for `null`, an empty string or any non-string, and older displays must never receive `null` (D-017) |
@@ -156,10 +157,9 @@ The threats behind these are in [THREAT.md](THREAT.md).
 
 | Logic | Where it lives |
 |---|---|
-| What counts as down, and when to announce it | `_consume_messages` with `NETWORK_FAIL_CHECK` |
+| What counts as down, and when to announce it | `record_health` and `check_kafka` with `HEALTH_STREAK`, and `wanted_panel` for which panel shows |
 | Camera `ERROR` and `SUCCESS` control messages | `update_camera_status` and the strip in `templates/index.html`. Their format is shared with the CCTV system |
-| System status messages | `_consume_messages`, and `templates/index.html` for how long they stay on screen |
-| The `Getting Started` wait | The text is duplicated in `app.py` and `templates/index.html`, so change both together |
+| System status messages | The panel constants and `update_screen` in `app.py` |
 | Client separation | `KAFKA_TOPIC`, `CONFLUENT_KAFKA_GROUP` and `IMAGE_SERVER_ADDRESS`, one set per display |
 | Which cameras a display shows | `KAFKA_PARTITIONS` and `assign_new_partitions`. It must stay `assign()`, because displays share a group and `subscribe()` would split the partitions between them |
 | Merge and release rules | `automerge.yml` and `release.yml` |

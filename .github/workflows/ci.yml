@@ -34,10 +34,10 @@ jobs:
         env:
           PLATFORM: ${{ matrix.platform }}
         run: |
-          docker run --rm --platform "$PLATFORM" -e IP_ADDRESS=10.0.0.1 -e PROJECT_SERVICES_PORT=1,2 ci/kafka-webapp:test sh -c '
+          docker run --rm --platform "$PLATFORM" -e IP_ADDRESS=10.0.0.1 ci/kafka-webapp:test sh -c '
             set -e
             pip check
-            python3 -c "import confluent_kafka, flask_socketio, requests, parameters as p; assert p.SERVER_IP_ADDRESS == \"10.0.0.1\" and p.PROJECT_SERVICES_PORT == [1, 2]"
+            python3 -c "import confluent_kafka, flask_socketio, requests, parameters as p; assert p.SERVER_IP_ADDRESS == \"10.0.0.1\" and p.HEALTH_URL == \"http://10.0.0.1:20010/health\""
           '
           if [ "$PLATFORM" = linux/amd64 ]; then docker run --rm ci/kafka-webapp:test python3 test_partitions.py; fi
 
