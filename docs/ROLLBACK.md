@@ -1,6 +1,6 @@
 # ROLLBACK: the way back out
 
-**Last known good release:** `v0.7.5`, commit `2119e4e`. Update this line after each release proves itself on a real display.
+**Last known good release:** `v0.8.0`, commit `10a70a9`, digest `sha256:bf4234b320c702e5964770122bbdc9532bbc554516128bb884b850283c2b8101`. Update this line after each release proves itself on a real display.
 
 ## Roll back a release
 
